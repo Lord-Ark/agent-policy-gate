@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <rect width="1200" height="720" fill="#EEE7D8"/>
+  <rect x="52" y="44" width="1096" height="632" rx="28" fill="#FFFDF8" stroke="#D9CFBF" stroke-width="2"/>
+  <text x="96" y="112" fill="#1D1A16" font-family="Georgia, serif" font-size="42">Sample HTML Audit Report</text>
+  <text x="96" y="150" fill="#5E564A" font-family="Georgia, serif" font-size="22">baseline-agent-runtime-policy v1.0.0</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="96" y="196" width="188" height="96" rx="18" fill="#FAF6EF" stroke="#D9CFBF"/>
+    <text x="122" y="228" fill="#5E564A" font-size="18">Events</text>
+    <text x="122" y="262" fill="#1D1A16" font-size="36">5</text>
+    <rect x="304" y="196" width="188" height="96" rx="18" fill="#F0F8F4" stroke="#0D6B57"/>
+    <text x="330" y="228" fill="#0D6B57" font-size="18">Allow</text>
+    <text x="330" y="262" fill="#0D6B57" font-size="36">1</text>
+    <rect x="512" y="196" width="188" height="96" rx="18" fill="#FFF7E8" stroke="#9A6700"/>
+    <text x="538" y="228" fill="#9A6700" font-size="18">Review</text>
+    <text x="538" y="262" fill="#9A6700" font-size="36">2</text>
+    <rect x="720" y="196" width="188" height="96" rx="18" fill="#FFF0F0" stroke="#A12B2B"/>
+    <text x="746" y="228" fill="#A12B2B" font-size="18">Deny</text>
+    <text x="746" y="262" fill="#A12B2B" font-size="36">2</text>
+    <rect x="928" y="196" width="188" height="96" rx="18" fill="#F7F1FF" stroke="#705E42"/>
+    <text x="954" y="228" fill="#705E42" font-size="18">Max Risk</text>
+    <text x="954" y="262" fill="#705E42" font-size="36">95</text>
+  </g>
+  <rect x="96" y="334" width="1020" height="266" rx="18" fill="#FCFBF7" stroke="#D9CFBF"/>
+  <text x="124" y="374" fill="#5E564A" font-family="Arial, sans-serif" font-size="18">Decision log</text>
+  <g font-family="Arial, sans-serif" font-size="20">
+    <text x="124" y="422" fill="#0D6B57">ALLOW</text>
+    <text x="264" y="422" fill="#1D1A16">docs/architecture.md</text>
+    <text x="124" y="468" fill="#A12B2B">DENY</text>
+    <text x="264" y="468" fill="#1D1A16">rm -rf /tmp/cache</text>
+    <text x="124" y="514" fill="#9A6700">REVIEW</text>
+    <text x="264" y="514" fill="#1D1A16">GITHUB_TOKEN access</text>
+    <text x="124" y="560" fill="#9A6700">REVIEW</text>
+    <text x="264" y="560" fill="#1D1A16">api.github.com network egress</text>
+  </g>
+</svg>

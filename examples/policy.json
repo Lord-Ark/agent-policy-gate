@@ -1,0 +1,48 @@
+{
+  "name": "baseline-agent-runtime-policy",
+  "version": "1.0.0",
+  "default_action": "review",
+  "rules": [
+    {
+      "id": "deny-destructive-shell",
+      "description": "Deny destructive shell commands.",
+      "effect": "deny",
+      "actions": ["execute"],
+      "tools": ["shell"],
+      "command_patterns": ["*rm -rf*", "*sudo*"],
+      "severity": "critical"
+    },
+    {
+      "id": "review-secret-env",
+      "description": "Review access to secret-like environment variables.",
+      "effect": "review",
+      "env_var_patterns": ["*TOKEN*", "*SECRET*", "*KEY*"],
+      "severity": "high"
+    },
+    {
+      "id": "deny-prod-write",
+      "description": "Deny direct writes into production infrastructure paths.",
+      "effect": "deny",
+      "actions": ["write", "delete"],
+      "resource_prefixes": ["/infra/prod", "/k8s/prod"],
+      "severity": "critical"
+    },
+    {
+      "id": "review-public-egress",
+      "description": "Require review for non-internal network egress.",
+      "effect": "review",
+      "actions": ["network"],
+      "risk_threshold": 70,
+      "severity": "high"
+    },
+    {
+      "id": "allow-docs",
+      "description": "Allow documentation reads and writes inside docs.",
+      "effect": "allow",
+      "actions": ["read", "write"],
+      "resource_prefixes": ["docs/"],
+      "severity": "low"
+    }
+  ]
+}
+

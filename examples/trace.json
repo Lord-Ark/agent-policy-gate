@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "2026-06-07T10:01:00Z",
+    "actor": "planner-agent",
+    "tool_name": "fs",
+    "action": "read",
+    "resource": "docs/architecture.md",
+    "metadata": {}
+  },
+  {
+    "timestamp": "2026-06-07T10:05:00Z",
+    "actor": "executor-agent",
+    "tool_name": "shell",
+    "action": "execute",
+    "resource": "/workspace",
+    "metadata": {
+      "command": "rm -rf /tmp/cache",
+      "requires_approval": true
+    }
+  },
+  {
+    "timestamp": "2026-06-07T10:06:00Z",
+    "actor": "release-agent",
+    "tool_name": "env",
+    "action": "read",
+    "resource": "process-env",
+    "metadata": {
+      "env_vars": ["GITHUB_TOKEN", "PATH"]
+    }
+  },
+  {
+    "timestamp": "2026-06-07T10:09:00Z",
+    "actor": "deploy-agent",
+    "tool_name": "net",
+    "action": "network",
+    "resource": "https://api.github.com",
+    "metadata": {
+      "domain": "api.github.com"
+    }
+  },
+  {
+    "timestamp": "2026-06-07T10:12:00Z",
+    "actor": "infra-agent",
+    "tool_name": "fs",
+    "action": "write",
+    "resource": "/infra/prod/kustomization.yaml",
+    "metadata": {
+      "writes_outside_workspace": true
+    }
+  }
+]
+
