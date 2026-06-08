@@ -39,6 +39,92 @@ def render_json(result: EvaluationResult) -> str:
     return json.dumps(result.to_dict(), indent=2)
 
 
+def render_validation_json(issues) -> str:
+    return json.dumps({"issues": [issue.to_dict() for issue in issues]}, indent=2)
+
+
+def render_validation_text(issues) -> str:
+    if not issues:
+        return "Policy validation passed with no issues."
+    lines = ["Policy validation issues:", ""]
+    for issue in issues:
+        lines.append(f"[{issue.severity.upper()}] {issue.path}: {issue.message}")
+    return "\n".join(lines)
+
+
+def render_sarif(result: EvaluationResult) -> str:
+    rules = {}
+    results = []
+    for finding in result.findings:
+        rule_id = finding.rule_id or f"default-{finding.decision}"
+        if rule_id not in rules:
+            rules[rule_id] = {
+                "id": rule_id,
+                "name": rule_id,
+                "shortDescription": {"text": finding.reason},
+                "properties": {
+                    "decision": finding.decision,
+                    "severity": finding.severity,
+                },
+            }
+
+        event = finding.event
+        level = "note"
+        if finding.decision == "deny":
+            level = "error"
+        elif finding.decision == "review":
+            level = "warning"
+
+        location = {
+            "physicalLocation": {
+                "artifactLocation": {
+                    "uri": event.resource if event and event.resource else "agent-trace-event"
+                }
+            }
+        }
+        results.append(
+            {
+                "ruleId": rule_id,
+                "level": level,
+                "message": {
+                    "text": (
+                        f"{finding.reason} "
+                        f"(tool={event.tool_name if event else 'unknown'}, "
+                        f"action={event.action if event else 'unknown'}, "
+                        f"risk={finding.risk_score})"
+                    )
+                },
+                "locations": [location],
+                "properties": {
+                    "eventIndex": finding.event_index,
+                    "decision": finding.decision,
+                    "severity": finding.severity,
+                    "riskScore": finding.risk_score,
+                    "metadata": event.metadata if event else {},
+                },
+            }
+        )
+
+    payload = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "agent-policy-gate",
+                        "informationUri": "https://github.com/Lord-Ark/agent-policy-gate",
+                        "rules": list(rules.values()),
+                    }
+                },
+                "artifacts": [],
+                "results": results,
+            }
+        ],
+    }
+    return json.dumps(payload, indent=2)
+
+
 def render_html(result: EvaluationResult) -> str:
     rows = []
     for finding in result.findings:
@@ -183,4 +269,3 @@ def render_html(result: EvaluationResult) -> str:
 </body>
 </html>
 """
-

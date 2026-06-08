@@ -82,6 +82,22 @@ class Policy:
 
 
 @dataclass
+class ValidationIssue:
+    """A policy validation issue."""
+
+    path: str
+    message: str
+    severity: str = "error"
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "path": self.path,
+            "message": self.message,
+            "severity": self.severity,
+        }
+
+
+@dataclass
 class Finding:
     """A rule hit or heuristic escalation for a single event."""
 
@@ -150,4 +166,3 @@ class EvaluationResult:
             "summary": self.summary.to_dict(),
             "findings": [finding.to_dict() for finding in self.findings],
         }
-

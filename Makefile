@@ -17,6 +17,8 @@ test:
 	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m unittest discover -s tests -v
 
 security:
-	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format json > /tmp/apg-security-check.json
+	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m agent_policy_gate.cli validate --policy examples/policy.json
+	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format sarif --output /tmp/apg-security-check.sarif
+	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --fail-on deny || test $$? -eq 3
 
 verify: format lint typecheck test security

@@ -7,7 +7,15 @@ import json
 from pathlib import Path
 from typing import Iterable, List
 
-from .models import EvaluationResult, EvaluationSummary, Event, Finding, Policy, Rule
+from .models import (
+    EvaluationResult,
+    EvaluationSummary,
+    Event,
+    Finding,
+    Policy,
+    Rule,
+    ValidationIssue,
+)
 
 
 RISK_HINTS = {
@@ -19,6 +27,9 @@ RISK_HINTS = {
     "secrets": 95,
 }
 
+VALID_DECISIONS = {"allow", "review", "deny"}
+VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
+
 
 def load_policy(path: str) -> Policy:
     return Policy.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
@@ -27,6 +38,87 @@ def load_policy(path: str) -> Policy:
 def load_events(path: str) -> List[Event]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     return [Event.from_dict(item) for item in payload]
+
+
+def validate_policy(policy: Policy) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+
+    if not policy.name.strip():
+        issues.append(ValidationIssue(path="name", message="Policy name must not be empty."))
+    if not policy.version.strip():
+        issues.append(ValidationIssue(path="version", message="Policy version must not be empty."))
+    if policy.default_action not in VALID_DECISIONS:
+        issues.append(
+            ValidationIssue(
+                path="default_action",
+                message="default_action must be one of allow, review, or deny.",
+            )
+        )
+
+    seen_rule_ids = set()
+    for index, rule in enumerate(policy.rules):
+        path = f"rules[{index}]"
+        if not rule.rule_id.strip():
+            issues.append(ValidationIssue(path=f"{path}.id", message="Rule id must not be empty."))
+        elif rule.rule_id in seen_rule_ids:
+            issues.append(
+                ValidationIssue(path=f"{path}.id", message=f"Duplicate rule id '{rule.rule_id}'.")
+            )
+        else:
+            seen_rule_ids.add(rule.rule_id)
+
+        if rule.effect not in VALID_DECISIONS:
+            issues.append(
+                ValidationIssue(
+                    path=f"{path}.effect",
+                    message="Rule effect must be one of allow, review, or deny.",
+                )
+            )
+        if rule.severity not in VALID_SEVERITIES:
+            issues.append(
+                ValidationIssue(
+                    path=f"{path}.severity",
+                    message="Rule severity must be one of info, low, medium, high, or critical.",
+                )
+            )
+        if rule.risk_threshold is not None:
+            try:
+                risk_threshold = int(rule.risk_threshold)
+            except (TypeError, ValueError):
+                issues.append(
+                    ValidationIssue(
+                        path=f"{path}.risk_threshold",
+                        message="risk_threshold must be an integer between 0 and 100.",
+                    )
+                )
+            else:
+                if not 0 <= risk_threshold <= 100:
+                    issues.append(
+                        ValidationIssue(
+                            path=f"{path}.risk_threshold",
+                            message="risk_threshold must be between 0 and 100.",
+                        )
+                    )
+        if not any(
+            [
+                rule.actions,
+                rule.tools,
+                rule.resource_prefixes,
+                rule.command_patterns,
+                rule.domains,
+                rule.env_var_patterns,
+                rule.risk_threshold is not None,
+            ]
+        ):
+            issues.append(
+                ValidationIssue(
+                    path=path,
+                    message="Rule must define at least one matcher or risk threshold.",
+                    severity="warning",
+                )
+            )
+
+    return issues
 
 
 def _derive_risk_score(event: Event) -> int:
@@ -125,4 +217,3 @@ def _increment_summary(summary: EvaluationSummary, decision: str) -> None:
         summary.denied += 1
     else:
         summary.review += 1
-

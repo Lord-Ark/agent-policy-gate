@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-policy-gate"
-version = "0.1.0"
+version = "0.2.0"
 description = "Policy evaluation and audit reporting for AI agent tool execution."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,8 +24,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hamzakhan/agent-policy-gate"
-Issues = "https://github.com/hamzakhan/agent-policy-gate/issues"
+Homepage = "https://github.com/Lord-Ark/agent-policy-gate"
+Issues = "https://github.com/Lord-Ark/agent-policy-gate/issues"
 
 [project.scripts]
 apg = "agent_policy_gate.cli:main"
@@ -35,4 +35,3 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

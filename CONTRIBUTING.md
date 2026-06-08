@@ -13,6 +13,7 @@
 - Preserve backwards compatibility for the CLI across patch releases.
 - Add or update tests for every behavior change.
 - Document new policy fields with examples.
+- Keep CI semantics explicit: if a change affects exit codes, `validate`, or SARIF output, update smoke coverage and release notes.
 
 ## Release process
 
@@ -20,4 +21,3 @@
 2. Update `CHANGELOG.md`.
 3. Create a git tag like `v0.2.0`.
 4. Publish the release notes in GitHub.
-

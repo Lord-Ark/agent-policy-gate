@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.2.0] - 2026-06-08
+
+### Added
+
+- Policy validation command with duplicate rule detection, matcher coverage warnings, and schema-level error reporting.
+- SARIF report output for GitHub-native code scanning and security artifact workflows.
+- CI enforcement flags for failing builds on deny, review, or configurable risk thresholds.
+- CI gate flow diagram documenting validation, evaluation, report generation, and pipeline enforcement.
+
+### Changed
+
+- Expanded GitHub Actions smoke coverage to exercise policy validation, SARIF output, and non-zero enforcement semantics.
+- Strengthened the local `make security` target to validate policies and assert CI gate behavior.
+
 ## [0.1.0] - 2026-06-07
 
 ### Added
@@ -13,4 +27,3 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Risk scoring heuristics for shell, secrets, network, and filesystem activity.
 - CLI with text, JSON, and HTML report output.
 - Example policy, trace, demo visuals, unit tests, and CI workflow.
-

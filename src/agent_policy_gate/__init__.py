@@ -1,7 +1,6 @@
 """Agent Policy Gate package."""
 
-from .engine import evaluate_trace
+from .engine import evaluate_trace, validate_policy
 
-__all__ = ["evaluate_trace"]
-__version__ = "0.1.0"
-
+__all__ = ["evaluate_trace", "validate_policy"]
+__version__ = "0.2.0"

@@ -1,6 +1,6 @@
 import unittest
 
-from agent_policy_gate.engine import evaluate_trace
+from agent_policy_gate.engine import evaluate_trace, validate_policy
 from agent_policy_gate.models import Event, Policy
 
 
@@ -79,7 +79,53 @@ class EngineTestCase(unittest.TestCase):
         result = evaluate_trace(self.policy, events)
         self.assertEqual(result.summary.allowed, 1)
 
+    def test_validation_rejects_duplicate_rule_ids(self):
+        policy = Policy.from_dict(
+            {
+                "name": "bad-policy",
+                "version": "1.0.0",
+                "default_action": "review",
+                "rules": [
+                    {
+                        "id": "duplicate",
+                        "description": "first",
+                        "effect": "allow",
+                        "actions": ["read"],
+                    },
+                    {
+                        "id": "duplicate",
+                        "description": "second",
+                        "effect": "deny",
+                        "actions": ["write"],
+                    },
+                ],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertTrue(any("Duplicate rule id" in issue.message for issue in issues))
+
+    def test_validation_warns_on_matchless_rule(self):
+        policy = Policy.from_dict(
+            {
+                "name": "warn-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "empty-rule",
+                        "description": "matches everything unintentionally",
+                        "effect": "review",
+                    }
+                ],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertTrue(any(issue.severity == "warning" for issue in issues))
+
 
 if __name__ == "__main__":
     unittest.main()
-
