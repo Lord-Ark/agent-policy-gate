@@ -17,6 +17,16 @@ from .render import (
 )
 
 
+def _risk_threshold_value(raw: str) -> int:
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("risk threshold must be an integer.") from exc
+    if not 0 <= value <= 100:
+        raise argparse.ArgumentTypeError("risk threshold must be between 0 and 100.")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="apg",
@@ -41,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     evaluate_parser.add_argument(
         "--risk-threshold",
-        type=int,
+        type=_risk_threshold_value,
         help="Return a non-zero exit code when the highest derived risk score meets or exceeds this threshold.",
     )
 

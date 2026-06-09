@@ -115,6 +115,50 @@ class CLITestCase(unittest.TestCase):
 
             self.assertEqual(code, 1)
 
+    def test_rejects_negative_risk_threshold(self):
+        import sys
+
+        previous_argv = sys.argv
+        sys.argv = [
+            "apg",
+            "evaluate",
+            "--policy",
+            "examples/policy.json",
+            "--trace",
+            "examples/trace.json",
+            "--risk-threshold",
+            "-1",
+        ]
+        try:
+            with self.assertRaises(SystemExit) as context:
+                main()
+        finally:
+            sys.argv = previous_argv
+
+        self.assertEqual(context.exception.code, 2)
+
+    def test_rejects_risk_threshold_above_hundred(self):
+        import sys
+
+        previous_argv = sys.argv
+        sys.argv = [
+            "apg",
+            "evaluate",
+            "--policy",
+            "examples/policy.json",
+            "--trace",
+            "examples/trace.json",
+            "--risk-threshold",
+            "101",
+        ]
+        try:
+            with self.assertRaises(SystemExit) as context:
+                main()
+        finally:
+            sys.argv = previous_argv
+
+        self.assertEqual(context.exception.code, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
