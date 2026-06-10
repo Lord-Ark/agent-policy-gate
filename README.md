@@ -81,6 +81,7 @@ pip install -e .
 ## Usage
 
 ```bash
+apg --version
 apg evaluate --policy path/to/policy.json --trace path/to/trace.json --format text
 apg evaluate --policy path/to/policy.json --trace path/to/trace.json --format json
 apg evaluate --policy path/to/policy.json --trace path/to/trace.json --format html --output report.html

@@ -159,6 +159,25 @@ class CLITestCase(unittest.TestCase):
 
         self.assertEqual(context.exception.code, 2)
 
+    def test_version_flag_prints_package_version(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stdout = sys.stdout
+        stdout = StringIO()
+        sys.argv = ["apg", "--version"]
+        sys.stdout = stdout
+        try:
+            with self.assertRaises(SystemExit) as context:
+                main()
+        finally:
+            sys.argv = previous_argv
+            sys.stdout = previous_stdout
+
+        self.assertEqual(context.exception.code, 0)
+        self.assertEqual(stdout.getvalue().strip(), "apg 0.2.0")
+
 
 if __name__ == "__main__":
     unittest.main()

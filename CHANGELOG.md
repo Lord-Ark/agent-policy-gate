@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+
+- CLI `--version` flag for quick package version checks in local and CI environments.
+
 ## [0.2.0] - 2026-06-08
 
 ### Added

@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Optional
 
+from . import __version__
 from .engine import evaluate_trace, load_events, load_policy, validate_policy
 from .render import (
     render_html,
@@ -31,6 +32,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="apg",
         description="Evaluate AI agent tool execution traces against security policies.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
