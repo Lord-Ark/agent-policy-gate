@@ -79,6 +79,77 @@ class EngineTestCase(unittest.TestCase):
         result = evaluate_trace(self.policy, events)
         self.assertEqual(result.summary.allowed, 1)
 
+    def test_matches_actions_and_tools_case_insensitively(self):
+        policy = Policy.from_dict(
+            {
+                "name": "mixed-case-policy",
+                "version": "1.0.0",
+                "default_action": "review",
+                "rules": [
+                    {
+                        "id": "deny-shell",
+                        "description": "deny destructive commands",
+                        "effect": "deny",
+                        "actions": ["EXECUTE"],
+                        "tools": ["Shell"],
+                        "command_patterns": ["*rm -rf*"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "SHELL",
+                    "action": "Execute",
+                    "resource": "/workspace",
+                    "metadata": {"command": "rm -rf ."},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.denied, 1)
+        self.assertEqual(result.findings[0].rule_id, "deny-shell")
+
+    def test_matches_domains_case_insensitively(self):
+        policy = Policy.from_dict(
+            {
+                "name": "domain-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-egress",
+                        "description": "review github api access",
+                        "effect": "review",
+                        "actions": ["network"],
+                        "domains": ["API.GITHUB.COM"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "https://api.github.com",
+                    "metadata": {"domain": "api.github.com"},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-egress")
+
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(
             {

@@ -154,7 +154,7 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
         fnmatch.fnmatch(command, pattern) for pattern in rule.command_patterns
     ):
         return False
-    domain = str(event.metadata.get("domain", ""))
+    domain = str(event.metadata.get("domain", "")).lower()
     if rule.domains and domain not in rule.domains:
         return False
     env_vars = [str(item) for item in event.metadata.get("env_vars", [])]
