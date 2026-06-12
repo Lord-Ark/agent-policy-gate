@@ -115,6 +115,47 @@ class CLITestCase(unittest.TestCase):
 
             self.assertEqual(code, 1)
 
+    def test_evaluate_invalid_policy_uses_json_validation_output(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "maybe",
+                        "rules": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                str(bad_policy),
+                "--trace",
+                "examples/trace.json",
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "default_action")
+
     def test_rejects_negative_risk_threshold(self):
         import sys
 

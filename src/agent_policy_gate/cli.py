@@ -115,7 +115,8 @@ def main() -> int:
         policy = load_policy(args.policy)
         issues = [issue for issue in validate_policy(policy) if issue.severity == "error"]
         if issues:
-            _write_output(args.output, _render_validation(issues, "text"))
+            validation_format = "json" if args.format == "json" else "text"
+            _write_output(args.output, _render_validation(issues, validation_format))
             return 1
         events = load_events(args.trace)
         result = evaluate_trace(policy, events)
