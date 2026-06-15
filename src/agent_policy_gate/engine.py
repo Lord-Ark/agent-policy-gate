@@ -6,6 +6,7 @@ import fnmatch
 import json
 from pathlib import Path
 from typing import Iterable, List
+from urllib.parse import urlparse
 
 from .models import (
     EvaluationResult,
@@ -135,9 +136,19 @@ def _derive_risk_score(event: Event) -> int:
         score = max(score, 90)
     if metadata.get("accesses_secrets"):
         score = max(score, 95)
-    if metadata.get("domain") and not str(metadata.get("domain", "")).endswith(".internal"):
+    domain = _event_domain(event)
+    if domain and not domain.endswith(".internal"):
         score = max(score, 70)
     return min(score, 100)
+
+
+def _event_domain(event: Event) -> str:
+    domain = str(event.metadata.get("domain", "")).strip().lower()
+    if domain:
+        return domain
+
+    parsed = urlparse(event.resource)
+    return (parsed.hostname or "").lower()
 
 
 def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
@@ -154,7 +165,7 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
         fnmatch.fnmatch(command, pattern) for pattern in rule.command_patterns
     ):
         return False
-    domain = str(event.metadata.get("domain", "")).lower()
+    domain = _event_domain(event)
     if rule.domains and domain not in rule.domains:
         return False
     env_vars = [str(item) for item in event.metadata.get("env_vars", [])]
