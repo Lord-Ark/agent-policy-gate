@@ -34,6 +34,33 @@ class CLITestCase(unittest.TestCase):
             self.assertTrue(output_path.exists())
             self.assertIn("Agent Policy Gate", output_path.read_text(encoding="utf-8"))
 
+    def test_html_report_write_creates_missing_parent_directories(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output_path = Path(tmp_dir) / "nested" / "reports" / "report.html"
+            import sys
+
+            previous_argv = sys.argv
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                "examples/trace.json",
+                "--format",
+                "html",
+                "--output",
+                str(output_path),
+            ]
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+
+            self.assertEqual(code, 0)
+            self.assertTrue(output_path.exists())
+            self.assertIn("Agent Policy Gate", output_path.read_text(encoding="utf-8"))
+
     def test_sarif_output_write(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "report.sarif"

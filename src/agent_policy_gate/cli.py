@@ -92,7 +92,9 @@ def _render_validation(issues, output_format: str) -> str:
 
 def _write_output(output: Optional[str], content: str) -> None:
     if output:
-        Path(output).write_text(content, encoding="utf-8")
+        output_path = Path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content, encoding="utf-8")
     else:
         print(content)
 
