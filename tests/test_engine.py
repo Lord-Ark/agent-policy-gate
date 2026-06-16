@@ -250,6 +250,22 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertTrue(any(issue.severity == "warning" for issue in issues))
 
+    def test_validation_reports_missing_rule_fields_instead_of_crashing(self):
+        policy = Policy.from_dict(
+            {
+                "name": "bad-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [{}],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertTrue(any(issue.path == "rules[0].id" for issue in issues))
+        self.assertTrue(any(issue.path == "rules[0].description" for issue in issues))
+        self.assertTrue(any(issue.path == "rules[0].effect" for issue in issues))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -48,9 +48,9 @@ class Rule:
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "Rule":
         return cls(
-            rule_id=str(payload["id"]),
-            description=str(payload["description"]),
-            effect=str(payload["effect"]).lower(),
+            rule_id=str(payload.get("id", "")),
+            description=str(payload.get("description", "")),
+            effect=str(payload.get("effect", "")).lower(),
             actions=[str(action).lower() for action in payload.get("actions", [])],
             tools=[str(tool).lower() for tool in payload.get("tools", [])],
             resource_prefixes=list(payload.get("resource_prefixes", [])),

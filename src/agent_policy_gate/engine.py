@@ -68,6 +68,13 @@ def validate_policy(policy: Policy) -> List[ValidationIssue]:
         else:
             seen_rule_ids.add(rule.rule_id)
 
+        if not rule.description.strip():
+            issues.append(
+                ValidationIssue(
+                    path=f"{path}.description",
+                    message="Rule description must not be empty.",
+                )
+            )
         if rule.effect not in VALID_DECISIONS:
             issues.append(
                 ValidationIssue(
