@@ -203,6 +203,25 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 75)
 
+    def test_event_with_non_mapping_metadata_does_not_crash(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "https://example.com/api",
+                    "metadata": "unexpected",
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].event.metadata, {})
+
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(
             {
@@ -263,6 +282,23 @@ class EngineTestCase(unittest.TestCase):
         issues = validate_policy(policy)
 
         self.assertTrue(any(issue.path == "rules[0].id" for issue in issues))
+        self.assertTrue(any(issue.path == "rules[0].description" for issue in issues))
+        self.assertTrue(any(issue.path == "rules[0].effect" for issue in issues))
+
+    def test_validation_reports_single_rule_object_instead_of_crashing(self):
+        policy = Policy.from_dict(
+            {
+                "name": "bad-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": {
+                    "id": "singleton-rule",
+                },
+            }
+        )
+
+        issues = validate_policy(policy)
+
         self.assertTrue(any(issue.path == "rules[0].description" for issue in issues))
         self.assertTrue(any(issue.path == "rules[0].effect" for issue in issues))
 

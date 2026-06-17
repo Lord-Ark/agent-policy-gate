@@ -266,6 +266,49 @@ class CLITestCase(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["issues"][0]["path"], "rules[0].id")
 
+    def test_evaluate_single_rule_object_uses_validation_output_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": {
+                            "id": "singleton-rule",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                str(bad_policy),
+                "--trace",
+                "examples/trace.json",
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "rules[0].description")
+
     def test_rejects_negative_risk_threshold(self):
         import sys
 
@@ -328,6 +371,48 @@ class CLITestCase(unittest.TestCase):
 
         self.assertEqual(context.exception.code, 0)
         self.assertEqual(stdout.getvalue().strip(), "apg 0.2.0")
+
+    def test_evaluate_trace_with_non_mapping_metadata_does_not_crash(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "timestamp": "2026-01-01T00:00:00Z",
+                            "actor": "agent",
+                            "tool_name": "net",
+                            "action": "network",
+                            "resource": "https://example.com/api",
+                            "metadata": "unexpected",
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                str(trace_path),
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 0)
+            self.assertIn("Summary: 1 events", stdout.getvalue())
 
 
 if __name__ == "__main__":
