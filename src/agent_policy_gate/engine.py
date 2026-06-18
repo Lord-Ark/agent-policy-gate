@@ -32,6 +32,14 @@ VALID_DECISIONS = {"allow", "review", "deny"}
 VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
 
 
+def _metadata_list(value: object) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
 def load_policy(path: str) -> Policy:
     return Policy.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
@@ -175,7 +183,7 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
     domain = _event_domain(event)
     if rule.domains and domain not in rule.domains:
         return False
-    env_vars = [str(item) for item in event.metadata.get("env_vars", [])]
+    env_vars = _metadata_list(event.metadata.get("env_vars"))
     if rule.env_var_patterns and not any(
         fnmatch.filter(env_vars, pattern) for pattern in rule.env_var_patterns
     ):
