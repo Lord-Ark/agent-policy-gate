@@ -5,7 +5,7 @@ from __future__ import annotations
 import fnmatch
 import json
 from pathlib import Path
-from typing import Iterable, List
+from typing import Any, Iterable, List
 from urllib.parse import urlparse
 
 from .models import (
@@ -44,9 +44,17 @@ def load_policy(path: str) -> Policy:
     return Policy.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
 
+def _event_payload_items(payload: Any) -> List[object]:
+    if isinstance(payload, dict):
+        return [payload]
+    if isinstance(payload, (list, tuple)):
+        return list(payload)
+    return []
+
+
 def load_events(path: str) -> List[Event]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    return [Event.from_dict(item) for item in payload]
+    return [Event.from_dict(item) for item in _event_payload_items(payload)]
 
 
 def validate_policy(policy: Policy) -> List[ValidationIssue]:
