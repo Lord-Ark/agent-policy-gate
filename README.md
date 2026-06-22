@@ -107,6 +107,8 @@ Policy schema highlights:
 - `env_var_patterns`: secret-oriented env var detection.
 - `risk_threshold`: only trigger a rule when the derived score crosses the threshold.
 
+Trace inputs may be a single event object, an array of events, or an object that wraps either shape under an `events` key.
+
 ## GitHub security integration
 
 Generate SARIF and upload it in a downstream workflow or security pipeline:

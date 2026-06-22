@@ -1,6 +1,6 @@
 import unittest
 
-from agent_policy_gate.engine import evaluate_trace, validate_policy
+from agent_policy_gate.engine import _event_payload_items, evaluate_trace, validate_policy
 from agent_policy_gate.models import Event, Policy
 
 
@@ -289,6 +289,40 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].event.metadata, {})
+
+    def test_event_payload_items_supports_wrapped_event_lists(self):
+        payload = {
+            "events": [
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "shell",
+                    "action": "execute",
+                    "resource": "/workspace",
+                }
+            ]
+        }
+
+        items = _event_payload_items(payload)
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["tool_name"], "shell")
+
+    def test_event_payload_items_supports_wrapped_single_event_objects(self):
+        payload = {
+            "events": {
+                "timestamp": "2026-01-01T00:00:00Z",
+                "actor": "agent",
+                "tool_name": "shell",
+                "action": "execute",
+                "resource": "/workspace",
+            }
+        }
+
+        items = _event_payload_items(payload)
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["action"], "execute")
 
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(

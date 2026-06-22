@@ -46,6 +46,8 @@ def load_policy(path: str) -> Policy:
 
 def _event_payload_items(payload: Any) -> List[object]:
     if isinstance(payload, dict):
+        if "events" in payload:
+            return _event_payload_items(payload.get("events"))
         return [payload]
     if isinstance(payload, (list, tuple)):
         return list(payload)
