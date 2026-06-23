@@ -185,6 +185,76 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-egress")
 
+    def test_matches_domains_when_metadata_domain_contains_url(self):
+        policy = Policy.from_dict(
+            {
+                "name": "domain-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-egress",
+                        "description": "review github api access",
+                        "effect": "review",
+                        "actions": ["network"],
+                        "domains": ["api.github.com"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "https://example.com",
+                    "metadata": {"domain": "https://API.GitHub.com/repos/example/project"},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-egress")
+
+    def test_matches_domains_when_metadata_domain_contains_port(self):
+        policy = Policy.from_dict(
+            {
+                "name": "domain-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-egress",
+                        "description": "review github api access",
+                        "effect": "review",
+                        "actions": ["network"],
+                        "domains": ["api.github.com"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "https://example.com",
+                    "metadata": {"domain": "API.GitHub.com:443"},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-egress")
+
     def test_network_url_without_metadata_domain_still_contributes_egress_risk(self):
         events = [
             Event.from_dict(

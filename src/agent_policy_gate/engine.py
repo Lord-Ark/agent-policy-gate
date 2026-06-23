@@ -40,6 +40,18 @@ def _metadata_list(value: object) -> List[str]:
     return [str(value)]
 
 
+def _normalize_domain(value: object) -> str:
+    text = str(value).strip().lower().rstrip(".")
+    if not text:
+        return ""
+
+    parsed = urlparse(text if "://" in text else f"//{text}")
+    if parsed.hostname:
+        return parsed.hostname.rstrip(".").lower()
+
+    return text.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].split(":", 1)[0]
+
+
 def load_policy(path: str) -> Policy:
     return Policy.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
@@ -168,12 +180,11 @@ def _derive_risk_score(event: Event) -> int:
 
 
 def _event_domain(event: Event) -> str:
-    domain = str(event.metadata.get("domain", "")).strip().lower()
+    domain = _normalize_domain(event.metadata.get("domain", ""))
     if domain:
         return domain
 
-    parsed = urlparse(event.resource)
-    return (parsed.hostname or "").lower()
+    return _normalize_domain(event.resource)
 
 
 def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
