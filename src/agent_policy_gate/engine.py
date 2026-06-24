@@ -202,7 +202,8 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
     ):
         return False
     domain = _event_domain(event)
-    if rule.domains and domain not in rule.domains:
+    rule_domains = [_normalize_domain(candidate) for candidate in rule.domains]
+    if rule.domains and domain not in rule_domains:
         return False
     env_vars = _metadata_list(event.metadata.get("env_vars"))
     if rule.env_var_patterns and not any(
