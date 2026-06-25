@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Optional
 
 from . import __version__
-from .engine import evaluate_trace, load_events, load_policy, validate_policy
+from .engine import InputLoadError, evaluate_trace, load_events, load_policy, validate_policy
+from .models import ValidationIssue
 from .render import (
     render_html,
     render_json,
@@ -90,6 +91,10 @@ def _render_validation(issues, output_format: str) -> str:
     return render_validation_text(issues)
 
 
+def _validation_format_for_evaluate(output_format: str) -> str:
+    return "json" if output_format == "json" else "text"
+
+
 def _write_output(output: Optional[str], content: str) -> None:
     if output:
         output_path = Path(output)
@@ -114,19 +119,49 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "evaluate":
-        policy = load_policy(args.policy)
+        validation_format = _validation_format_for_evaluate(args.format)
+        try:
+            policy = load_policy(args.policy)
+        except InputLoadError as exc:
+            _write_output(
+                args.output,
+                _render_validation(
+                    [ValidationIssue(path=exc.kind, message=exc.message)],
+                    validation_format,
+                ),
+            )
+            return 1
         issues = [issue for issue in validate_policy(policy) if issue.severity == "error"]
         if issues:
-            validation_format = "json" if args.format == "json" else "text"
             _write_output(args.output, _render_validation(issues, validation_format))
             return 1
-        events = load_events(args.trace)
+        try:
+            events = load_events(args.trace)
+        except InputLoadError as exc:
+            _write_output(
+                args.output,
+                _render_validation(
+                    [ValidationIssue(path=exc.kind, message=exc.message)],
+                    validation_format,
+                ),
+            )
+            return 1
         result = evaluate_trace(policy, events)
         _write_output(args.output, _render(result, args.format))
         return 3 if _should_fail(result, args.fail_on, args.risk_threshold) else 0
 
     if args.command == "validate":
-        policy = load_policy(args.policy)
+        try:
+            policy = load_policy(args.policy)
+        except InputLoadError as exc:
+            _write_output(
+                args.output,
+                _render_validation(
+                    [ValidationIssue(path=exc.kind, message=exc.message)],
+                    args.format,
+                ),
+            )
+            return 1
         issues = validate_policy(policy)
         _write_output(args.output, _render_validation(issues, args.format))
         has_errors = any(issue.severity == "error" for issue in issues)

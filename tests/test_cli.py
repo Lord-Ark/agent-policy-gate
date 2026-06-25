@@ -7,6 +7,36 @@ from agent_policy_gate.cli import main
 
 
 class CLITestCase(unittest.TestCase):
+    def test_validate_command_reports_invalid_policy_json(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text('{"name": "bad-policy",}', encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "validate",
+                "--policy",
+                str(bad_policy),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "policy")
+            self.assertIn("Invalid JSON in policy file", payload["issues"][0]["message"])
+
     def test_html_report_write(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "report.html"
@@ -224,6 +254,38 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(code, 1)
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["issues"][0]["path"], "default_action")
+
+    def test_evaluate_invalid_policy_json_uses_validation_output_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text('{"name": "bad-policy",}', encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                str(bad_policy),
+                "--trace",
+                "examples/trace.json",
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "policy")
+            self.assertIn("Invalid JSON in policy file", payload["issues"][0]["message"])
 
     def test_evaluate_invalid_rule_uses_validation_output_instead_of_crashing(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -542,6 +604,38 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn("Summary: 1 events", stdout.getvalue())
             self.assertIn("[DENY] event=0", stdout.getvalue())
+
+    def test_evaluate_invalid_trace_json_uses_validation_output_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text('[{"timestamp": "2026-01-01T00:00:00Z"}', encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                str(trace_path),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "trace")
+            self.assertIn("Invalid JSON in trace file", payload["issues"][0]["message"])
 
     def test_evaluate_trace_matches_domain_rule_when_metadata_domain_is_url(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

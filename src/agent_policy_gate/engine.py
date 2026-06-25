@@ -32,6 +32,16 @@ VALID_DECISIONS = {"allow", "review", "deny"}
 VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
 
 
+class InputLoadError(ValueError):
+    """Raised when a policy or trace file cannot be loaded into JSON."""
+
+    def __init__(self, kind: str, path: str, message: str):
+        super().__init__(message)
+        self.kind = kind
+        self.path = path
+        self.message = message
+
+
 def _metadata_list(value: object) -> List[str]:
     if value is None:
         return []
@@ -53,7 +63,7 @@ def _normalize_domain(value: object) -> str:
 
 
 def load_policy(path: str) -> Policy:
-    return Policy.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+    return Policy.from_dict(_load_json_file(path, kind="policy"))
 
 
 def _event_payload_items(payload: Any) -> List[object]:
@@ -67,8 +77,24 @@ def _event_payload_items(payload: Any) -> List[object]:
 
 
 def load_events(path: str) -> List[Event]:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    payload = _load_json_file(path, kind="trace")
     return [Event.from_dict(item) for item in _event_payload_items(payload)]
+
+
+def _load_json_file(path: str, *, kind: str) -> Any:
+    try:
+        raw = Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise InputLoadError(kind, path, f"Unable to read {kind} file: {exc.strerror or exc}.") from exc
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise InputLoadError(
+            kind,
+            path,
+            f"Invalid JSON in {kind} file at line {exc.lineno}, column {exc.colno}: {exc.msg}.",
+        ) from exc
 
 
 def validate_policy(policy: Policy) -> List[ValidationIssue]:
