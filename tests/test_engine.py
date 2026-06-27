@@ -376,6 +376,40 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-secrets")
 
+    def test_matches_string_risk_threshold_without_crashing(self):
+        policy = Policy.from_dict(
+            {
+                "name": "risk-threshold-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-high-risk",
+                        "description": "review risky execution",
+                        "effect": "review",
+                        "risk_threshold": "90",
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "shell",
+                    "action": "execute",
+                    "resource": "/workspace",
+                    "metadata": {"command": "sudo rm -rf /tmp/build-cache"},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-high-risk")
+
     def test_event_with_non_mapping_metadata_does_not_crash(self):
         events = [
             Event.from_dict(

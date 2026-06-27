@@ -22,6 +22,15 @@ def _as_list(value: Any) -> List[Any]:
     return [value]
 
 
+def _coerce_optional_int(value: Any) -> Any:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value
+
+
 @dataclass
 class Event:
     """A normalized tool execution event emitted by an agent runtime."""
@@ -76,7 +85,7 @@ class Rule:
             command_patterns=[str(pattern) for pattern in _as_list(payload.get("command_patterns", []))],
             domains=[str(domain).lower() for domain in _as_list(payload.get("domains", []))],
             env_var_patterns=[str(pattern) for pattern in _as_list(payload.get("env_var_patterns", []))],
-            risk_threshold=payload.get("risk_threshold"),
+            risk_threshold=_coerce_optional_int(payload.get("risk_threshold")),
             severity=str(payload.get("severity", "medium")).lower(),
         )
 
