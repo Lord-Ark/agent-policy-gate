@@ -115,6 +115,47 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.denied, 1)
         self.assertEqual(result.findings[0].rule_id, "deny-shell")
 
+    def test_trims_whitespace_around_normalized_match_fields(self):
+        policy = Policy.from_dict(
+            {
+                "name": "trimmed-policy",
+                "version": "1.0.0",
+                "default_action": " allow ",
+                "rules": [
+                    {
+                        "id": "deny-shell",
+                        "description": "deny destructive commands",
+                        "effect": " deny ",
+                        "severity": " high ",
+                        "actions": ["execute"],
+                        "tools": ["shell"],
+                        "command_patterns": ["*rm -rf*"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": " SHELL ",
+                    "action": " Execute ",
+                    "resource": "/workspace",
+                    "metadata": {"command": "rm -rf ."},
+                }
+            )
+        ]
+
+        issues = validate_policy(policy)
+        result = evaluate_trace(policy, events)
+
+        self.assertFalse(issues)
+        self.assertEqual(result.summary.denied, 1)
+        self.assertEqual(result.summary.review, 0)
+        self.assertEqual(result.findings[0].decision, "deny")
+        self.assertEqual(result.findings[0].severity, "high")
+
     def test_matches_domains_case_insensitively(self):
         policy = Policy.from_dict(
             {

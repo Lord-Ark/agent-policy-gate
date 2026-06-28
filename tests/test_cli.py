@@ -537,6 +537,70 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn("[REVIEW] event=0", stdout.getvalue())
 
+    def test_evaluate_policy_with_whitespace_padded_fields_succeeds(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            trace_path = Path(tmp_dir) / "trace.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "name": "trimmed-policy",
+                        "version": "1.0.0",
+                        "default_action": " allow ",
+                        "rules": [
+                            {
+                                "id": "deny-shell",
+                                "description": "deny destructive commands",
+                                "effect": " deny ",
+                                "severity": " high ",
+                                "actions": ["execute"],
+                                "tools": ["shell"],
+                                "command_patterns": ["*rm -rf*"],
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            trace_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "timestamp": "2026-01-01T00:00:00Z",
+                            "actor": "agent",
+                            "tool_name": " SHELL ",
+                            "action": " Execute ",
+                            "resource": "/workspace",
+                            "metadata": {"command": "rm -rf ."},
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                str(policy_path),
+                "--trace",
+                str(trace_path),
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 0)
+            self.assertIn("[DENY] event=0", stdout.getvalue())
+
     def test_evaluate_single_trace_object_counts_one_event(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             trace_path = Path(tmp_dir) / "trace.json"

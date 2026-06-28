@@ -6,6 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
+def _as_string(value: Any, *, lower: bool = False) -> str:
+    text = str(value).strip()
+    return text.lower() if lower else text
+
+
 def _as_dict(payload: Any) -> Dict[str, Any]:
     if isinstance(payload, dict):
         return payload
@@ -47,11 +52,11 @@ class Event:
         payload = _as_dict(payload)
         metadata = payload.get("metadata", {})
         return cls(
-            timestamp=str(payload.get("timestamp", "")),
-            actor=str(payload.get("actor", "unknown")),
-            tool_name=str(payload.get("tool_name", "unknown")).lower(),
-            action=str(payload.get("action", "unknown")).lower(),
-            resource=str(payload.get("resource", "")),
+            timestamp=_as_string(payload.get("timestamp", "")),
+            actor=_as_string(payload.get("actor", "unknown")),
+            tool_name=_as_string(payload.get("tool_name", "unknown"), lower=True),
+            action=_as_string(payload.get("action", "unknown"), lower=True),
+            resource=_as_string(payload.get("resource", "")),
             metadata=dict(metadata) if isinstance(metadata, dict) else {},
         )
 
@@ -76,17 +81,25 @@ class Rule:
     def from_dict(cls, payload: Dict[str, Any]) -> "Rule":
         payload = _as_dict(payload)
         return cls(
-            rule_id=str(payload.get("id", "")),
-            description=str(payload.get("description", "")),
-            effect=str(payload.get("effect", "")).lower(),
-            actions=[str(action).lower() for action in _as_list(payload.get("actions", []))],
-            tools=[str(tool).lower() for tool in _as_list(payload.get("tools", []))],
-            resource_prefixes=[str(prefix) for prefix in _as_list(payload.get("resource_prefixes", []))],
-            command_patterns=[str(pattern) for pattern in _as_list(payload.get("command_patterns", []))],
-            domains=[str(domain).lower() for domain in _as_list(payload.get("domains", []))],
-            env_var_patterns=[str(pattern) for pattern in _as_list(payload.get("env_var_patterns", []))],
+            rule_id=_as_string(payload.get("id", "")),
+            description=_as_string(payload.get("description", "")),
+            effect=_as_string(payload.get("effect", ""), lower=True),
+            actions=[
+                _as_string(action, lower=True) for action in _as_list(payload.get("actions", []))
+            ],
+            tools=[_as_string(tool, lower=True) for tool in _as_list(payload.get("tools", []))],
+            resource_prefixes=[
+                _as_string(prefix) for prefix in _as_list(payload.get("resource_prefixes", []))
+            ],
+            command_patterns=[
+                _as_string(pattern) for pattern in _as_list(payload.get("command_patterns", []))
+            ],
+            domains=[_as_string(domain, lower=True) for domain in _as_list(payload.get("domains", []))],
+            env_var_patterns=[
+                _as_string(pattern) for pattern in _as_list(payload.get("env_var_patterns", []))
+            ],
             risk_threshold=_coerce_optional_int(payload.get("risk_threshold")),
-            severity=str(payload.get("severity", "medium")).lower(),
+            severity=_as_string(payload.get("severity", "medium"), lower=True),
         )
 
 
@@ -103,9 +116,9 @@ class Policy:
     def from_dict(cls, payload: Dict[str, Any]) -> "Policy":
         payload = _as_dict(payload)
         return cls(
-            name=str(payload.get("name", "unnamed-policy")),
-            version=str(payload.get("version", "0.0.0")),
-            default_action=str(payload.get("default_action", "allow")).lower(),
+            name=_as_string(payload.get("name", "unnamed-policy")),
+            version=_as_string(payload.get("version", "0.0.0")),
+            default_action=_as_string(payload.get("default_action", "allow"), lower=True),
             rules=[Rule.from_dict(rule) for rule in _as_list(payload.get("rules", []))],
         )
 
