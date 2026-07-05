@@ -827,6 +827,53 @@ class CLITestCase(unittest.TestCase):
             self.assertIn("Summary: 1 events", stdout.getvalue())
             self.assertIn("review github api access", stdout.getvalue())
 
+    def test_validate_command_rejects_blank_matcher_entries(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": [
+                            {
+                                "id": "blank-matchers",
+                                "description": "contains blank matcher values",
+                                "effect": "review",
+                                "actions": ["read", " "],
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "validate",
+                "--policy",
+                str(policy_path),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "rules[0].actions[1]")
+            self.assertIn("must not be empty", payload["issues"][0]["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

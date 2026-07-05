@@ -584,6 +584,42 @@ class EngineTestCase(unittest.TestCase):
         self.assertTrue(any(issue.path == "rules[0].description" for issue in issues))
         self.assertTrue(any(issue.path == "rules[0].effect" for issue in issues))
 
+    def test_validation_rejects_blank_matcher_entries(self):
+        policy = Policy.from_dict(
+            {
+                "name": "bad-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "blank-matchers",
+                        "description": "contains blank matcher values",
+                        "effect": "review",
+                        "actions": ["read", " "],
+                        "tools": ["shell", "\t"],
+                        "resource_prefixes": ["docs/", ""],
+                        "command_patterns": ["rm *", "   "],
+                        "domains": ["api.github.com", " "],
+                        "env_var_patterns": ["OPENAI_*", ""],
+                    }
+                ],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertEqual(
+            [issue.path for issue in issues],
+            [
+                "rules[0].actions[1]",
+                "rules[0].tools[1]",
+                "rules[0].resource_prefixes[1]",
+                "rules[0].command_patterns[1]",
+                "rules[0].domains[1]",
+                "rules[0].env_var_patterns[1]",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

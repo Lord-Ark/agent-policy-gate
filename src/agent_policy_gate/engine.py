@@ -42,6 +42,20 @@ class InputLoadError(ValueError):
         self.message = message
 
 
+def _append_blank_matcher_issues(
+    issues: List[ValidationIssue], path: str, field_name: str, values: List[str]
+) -> None:
+    for item_index, value in enumerate(values):
+        if str(value).strip():
+            continue
+        issues.append(
+            ValidationIssue(
+                path=f"{path}.{field_name}[{item_index}]",
+                message=f"{field_name} entries must not be empty.",
+            )
+        )
+
+
 def _metadata_list(value: object) -> List[str]:
     if value is None:
         return []
@@ -145,6 +159,12 @@ def validate_policy(policy: Policy) -> List[ValidationIssue]:
                     message="Rule severity must be one of info, low, medium, high, or critical.",
                 )
             )
+        _append_blank_matcher_issues(issues, path, "actions", rule.actions)
+        _append_blank_matcher_issues(issues, path, "tools", rule.tools)
+        _append_blank_matcher_issues(issues, path, "resource_prefixes", rule.resource_prefixes)
+        _append_blank_matcher_issues(issues, path, "command_patterns", rule.command_patterns)
+        _append_blank_matcher_issues(issues, path, "domains", rule.domains)
+        _append_blank_matcher_issues(issues, path, "env_var_patterns", rule.env_var_patterns)
         if rule.risk_threshold is not None:
             try:
                 risk_threshold = int(rule.risk_threshold)
