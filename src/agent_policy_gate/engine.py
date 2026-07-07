@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
+import ipaddress
 import json
 from pathlib import Path
 from typing import Any, Iterable, List
@@ -24,7 +25,7 @@ RISK_HINTS = {
     "write": 45,
     "delete": 85,
     "execute": 90,
-    "network": 75,
+    "network": 35,
     "secrets": 95,
 }
 
@@ -220,8 +221,8 @@ def _derive_risk_score(event: Event) -> int:
     if metadata.get("accesses_secrets"):
         score = max(score, 95)
     domain = _event_domain(event)
-    if domain and not domain.endswith(".internal"):
-        score = max(score, 70)
+    if domain and not _is_internal_domain(domain):
+        score = max(score, 75)
     return min(score, 100)
 
 
@@ -230,7 +231,47 @@ def _event_domain(event: Event) -> str:
     if domain:
         return domain
 
-    return _normalize_domain(event.resource)
+    return _resource_domain(event.resource)
+
+
+def _resource_domain(resource: str) -> str:
+    text = str(resource).strip()
+    if not text:
+        return ""
+    if "://" in text or text.startswith("//"):
+        return _normalize_domain(text)
+
+    candidate = _normalize_domain(text)
+    if not candidate:
+        return ""
+    if candidate == "localhost" or candidate.endswith(".localhost") or candidate.endswith(".internal"):
+        return candidate
+    if "." in candidate:
+        return candidate
+
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return ""
+
+    return candidate
+
+
+def _is_internal_domain(domain: str) -> bool:
+    normalized = _normalize_domain(domain)
+    if not normalized:
+        return False
+    if normalized == "localhost" or normalized.endswith(".localhost"):
+        return True
+    if normalized.endswith(".internal"):
+        return True
+
+    try:
+        address = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+
+    return address.is_private or address.is_loopback or address.is_link_local
 
 
 def _matches(rule: Rule, event: Event, risk_score: int) -> bool:

@@ -349,6 +349,60 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 75)
 
+    def test_non_network_resource_does_not_contribute_egress_risk(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "fs",
+                    "action": "read",
+                    "resource": "docs/readme.md",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 15)
+
+    def test_localhost_network_does_not_receive_external_egress_risk(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "http://localhost:3000/health",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 35)
+
+    def test_private_network_ip_does_not_receive_external_egress_risk(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "http://10.0.0.8:8080/health",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 35)
+
     def test_matches_env_var_patterns_when_metadata_uses_single_string(self):
         policy = Policy.from_dict(
             {
