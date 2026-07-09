@@ -70,6 +70,12 @@ def _normalize_domain(value: object) -> str:
     if not text:
         return ""
 
+    bracketless = text[1:-1] if text.startswith("[") and text.endswith("]") else text
+    try:
+        return str(ipaddress.ip_address(bracketless))
+    except ValueError:
+        pass
+
     parsed = urlparse(text if "://" in text else f"//{text}")
     if parsed.hostname:
         return parsed.hostname.rstrip(".").lower()
