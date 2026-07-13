@@ -140,6 +140,36 @@ class CLITestCase(unittest.TestCase):
 
         self.assertEqual(code, 3)
 
+    def test_risk_threshold_does_not_fail_empty_trace(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "empty-trace.json"
+            trace_path.write_text("[]", encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                str(trace_path),
+                "--risk-threshold",
+                "0",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 0)
+            self.assertIn("Summary: 0 events", stdout.getvalue())
+
     def test_validate_command_reports_errors(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             bad_policy = Path(tmp_dir) / "bad-policy.json"

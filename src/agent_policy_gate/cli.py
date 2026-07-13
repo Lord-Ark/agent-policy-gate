@@ -105,7 +105,11 @@ def _write_output(output: Optional[str], content: str) -> None:
 
 
 def _should_fail(result, fail_on: Optional[str], risk_threshold: Optional[int]) -> bool:
-    if risk_threshold is not None and result.summary.highest_risk_score >= risk_threshold:
+    if (
+        risk_threshold is not None
+        and result.summary.total_events > 0
+        and result.summary.highest_risk_score >= risk_threshold
+    ):
         return True
     if fail_on == "deny" and result.summary.denied > 0:
         return True
