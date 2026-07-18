@@ -226,7 +226,7 @@ def _derive_risk_score(event: Event) -> int:
         score = max(score, 90)
     if metadata.get("accesses_secrets"):
         score = max(score, 95)
-    domain = _event_domain(event)
+    domain = _event_domain(event) if action == "network" else ""
     if domain and not _is_internal_domain(domain):
         score = max(score, 75)
     return min(score, 100)

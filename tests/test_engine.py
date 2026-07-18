@@ -420,6 +420,24 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 15)
 
+    def test_dotted_file_path_does_not_receive_external_egress_risk(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "fs",
+                    "action": "write",
+                    "resource": "release.v1/notes.txt",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 45)
+
     def test_localhost_network_does_not_receive_external_egress_risk(self):
         events = [
             Event.from_dict(
