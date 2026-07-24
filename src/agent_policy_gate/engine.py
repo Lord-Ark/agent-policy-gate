@@ -60,6 +60,8 @@ def _append_blank_matcher_issues(
 def _metadata_list(value: object) -> List[str]:
     if value is None:
         return []
+    if isinstance(value, dict):
+        return [str(item) for item in value.keys()]
     if isinstance(value, (list, tuple)):
         return [str(item) for item in value]
     return [str(value)]

@@ -560,6 +560,40 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-secrets")
 
+    def test_matches_env_var_patterns_when_metadata_uses_object_keys(self):
+        policy = Policy.from_dict(
+            {
+                "name": "env-var-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-secrets",
+                        "description": "review secret env var usage",
+                        "effect": "review",
+                        "env_var_patterns": ["OPENAI_*"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "shell",
+                    "action": "execute",
+                    "resource": "/workspace",
+                    "metadata": {"env_vars": {"PATH": "/usr/bin", "OPENAI_API_KEY": "set"}},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-secrets")
+
     def test_matches_string_risk_threshold_without_crashing(self):
         policy = Policy.from_dict(
             {
