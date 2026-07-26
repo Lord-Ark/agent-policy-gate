@@ -62,6 +62,8 @@ Policy: baseline-agent-runtime-policy v1.0.0
 Summary: 5 events, 1 allow, 2 review, 2 deny, max risk 95
 ```
 
+Summary counts are rolled up per event using the most restrictive matched decision, while the detailed findings still include every matching rule.
+
 ## Repository layout
 
 ```text

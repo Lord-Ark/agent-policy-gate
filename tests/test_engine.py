@@ -156,6 +156,51 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.findings[0].decision, "deny")
         self.assertEqual(result.findings[0].severity, "high")
 
+    def test_summary_uses_most_restrictive_decision_per_event(self):
+        policy = Policy.from_dict(
+            {
+                "name": "overlap-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-execute",
+                        "description": "review all execute actions",
+                        "effect": "review",
+                        "actions": ["execute"],
+                    },
+                    {
+                        "id": "deny-shell",
+                        "description": "deny shell execution",
+                        "effect": "deny",
+                        "tools": ["shell"],
+                    },
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "shell",
+                    "action": "execute",
+                    "resource": "/workspace",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.total_events, 1)
+        self.assertEqual(result.summary.review, 0)
+        self.assertEqual(result.summary.denied, 1)
+        self.assertEqual(
+            [(finding.rule_id, finding.decision) for finding in result.findings],
+            [("review-execute", "review"), ("deny-shell", "deny")],
+        )
+
     def test_matches_domains_case_insensitively(self):
         policy = Policy.from_dict(
             {

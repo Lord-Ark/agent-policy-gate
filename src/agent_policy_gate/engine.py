@@ -31,6 +31,7 @@ RISK_HINTS = {
 
 VALID_DECISIONS = {"allow", "review", "deny"}
 VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
+DECISION_PRIORITY = {"allow": 0, "review": 1, "deny": 2}
 
 
 class InputLoadError(ValueError):
@@ -332,7 +333,10 @@ def evaluate_trace(policy: Policy, events: Iterable[Event]) -> EvaluationResult:
                     risk_score=risk_score,
                 )
                 findings.append(finding)
-                _increment_summary(summary, rule.effect)
+            _increment_summary(
+                summary,
+                max((rule.effect for rule in matched_rules), key=DECISION_PRIORITY.__getitem__),
+            )
         else:
             finding = Finding(
                 event_index=index,
