@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -27,6 +28,10 @@ def _risk_threshold_value(raw: str) -> int:
     if not 0 <= value <= 100:
         raise argparse.ArgumentTypeError("risk threshold must be between 0 and 100.")
     return value
+
+
+class OutputWriteError(OSError):
+    """Raised when rendered CLI output cannot be written."""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -98,8 +103,13 @@ def _validation_format_for_evaluate(output_format: str) -> str:
 def _write_output(output: Optional[str], content: str) -> None:
     if output:
         output_path = Path(output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content, encoding="utf-8")
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(content, encoding="utf-8")
+        except OSError as exc:
+            raise OutputWriteError(
+                f"Unable to write output file '{output_path}': {exc.strerror or exc}."
+            ) from exc
     else:
         print(content)
 
@@ -122,57 +132,61 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "evaluate":
-        validation_format = _validation_format_for_evaluate(args.format)
-        try:
-            policy = load_policy(args.policy)
-        except InputLoadError as exc:
-            _write_output(
-                args.output,
-                _render_validation(
-                    [ValidationIssue(path=exc.kind, message=exc.message)],
-                    validation_format,
-                ),
-            )
-            return 1
-        issues = [issue for issue in validate_policy(policy) if issue.severity == "error"]
-        if issues:
-            _write_output(args.output, _render_validation(issues, validation_format))
-            return 1
-        try:
-            events = load_events(args.trace)
-        except InputLoadError as exc:
-            _write_output(
-                args.output,
-                _render_validation(
-                    [ValidationIssue(path=exc.kind, message=exc.message)],
-                    validation_format,
-                ),
-            )
-            return 1
-        result = evaluate_trace(policy, events)
-        _write_output(args.output, _render(result, args.format))
-        return 3 if _should_fail(result, args.fail_on, args.risk_threshold) else 0
+    try:
+        if args.command == "evaluate":
+            validation_format = _validation_format_for_evaluate(args.format)
+            try:
+                policy = load_policy(args.policy)
+            except InputLoadError as exc:
+                _write_output(
+                    args.output,
+                    _render_validation(
+                        [ValidationIssue(path=exc.kind, message=exc.message)],
+                        validation_format,
+                    ),
+                )
+                return 1
+            issues = [issue for issue in validate_policy(policy) if issue.severity == "error"]
+            if issues:
+                _write_output(args.output, _render_validation(issues, validation_format))
+                return 1
+            try:
+                events = load_events(args.trace)
+            except InputLoadError as exc:
+                _write_output(
+                    args.output,
+                    _render_validation(
+                        [ValidationIssue(path=exc.kind, message=exc.message)],
+                        validation_format,
+                    ),
+                )
+                return 1
+            result = evaluate_trace(policy, events)
+            _write_output(args.output, _render(result, args.format))
+            return 3 if _should_fail(result, args.fail_on, args.risk_threshold) else 0
 
-    if args.command == "validate":
-        try:
-            policy = load_policy(args.policy)
-        except InputLoadError as exc:
-            _write_output(
-                args.output,
-                _render_validation(
-                    [ValidationIssue(path=exc.kind, message=exc.message)],
-                    args.format,
-                ),
-            )
-            return 1
-        issues = validate_policy(policy)
-        _write_output(args.output, _render_validation(issues, args.format))
-        has_errors = any(issue.severity == "error" for issue in issues)
-        return 1 if has_errors else 0
+        if args.command == "validate":
+            try:
+                policy = load_policy(args.policy)
+            except InputLoadError as exc:
+                _write_output(
+                    args.output,
+                    _render_validation(
+                        [ValidationIssue(path=exc.kind, message=exc.message)],
+                        args.format,
+                    ),
+                )
+                return 1
+            issues = validate_policy(policy)
+            _write_output(args.output, _render_validation(issues, args.format))
+            has_errors = any(issue.severity == "error" for issue in issues)
+            return 1 if has_errors else 0
 
-    parser.error("Unsupported command.")
-    return 2
+        parser.error("Unsupported command.")
+        return 2
+    except OutputWriteError as exc:
+        print(exc, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

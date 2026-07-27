@@ -91,6 +91,37 @@ class CLITestCase(unittest.TestCase):
             self.assertTrue(output_path.exists())
             self.assertIn("Agent Policy Gate", output_path.read_text(encoding="utf-8"))
 
+    def test_output_write_failure_returns_error_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output_path = Path(tmp_dir)
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stderr = sys.stderr
+            stderr = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                "examples/trace.json",
+                "--format",
+                "html",
+                "--output",
+                str(output_path),
+            ]
+            sys.stderr = stderr
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stderr = previous_stderr
+
+            self.assertEqual(code, 1)
+            self.assertIn("Unable to write output file", stderr.getvalue())
+
     def test_sarif_output_write(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "report.sarif"
