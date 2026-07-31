@@ -519,6 +519,40 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 35)
 
+    def test_validate_policy_rejects_domain_entries_without_host_or_ip(self):
+        policy = Policy.from_dict(
+            {
+                "name": "invalid-domain-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-egress",
+                        "description": "review outbound traffic",
+                        "effect": "review",
+                        "domains": ["https://", "//", "   "],
+                    }
+                ],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertEqual(
+            [(issue.path, issue.message) for issue in issues],
+            [
+                ("rules[0].domains[2]", "domains entries must not be empty."),
+                (
+                    "rules[0].domains[0]",
+                    "domains entries must include a hostname or IP address.",
+                ),
+                (
+                    "rules[0].domains[1]",
+                    "domains entries must include a hostname or IP address.",
+                ),
+            ],
+        )
+
     def test_raw_private_ipv6_does_not_receive_external_egress_risk(self):
         events = [
             Event.from_dict(

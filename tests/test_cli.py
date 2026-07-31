@@ -432,6 +432,52 @@ class CLITestCase(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["issues"][0]["path"], "rules[0].description")
 
+    def test_validate_command_reports_invalid_domain_entries(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": [
+                            {
+                                "id": "review-egress",
+                                "description": "review outbound traffic",
+                                "effect": "review",
+                                "domains": ["https://"],
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "validate",
+                "--policy",
+                str(bad_policy),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "rules[0].domains[0]")
+
     def test_rejects_negative_risk_threshold(self):
         import sys
 

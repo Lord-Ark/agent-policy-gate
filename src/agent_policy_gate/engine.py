@@ -58,6 +58,22 @@ def _append_blank_matcher_issues(
         )
 
 
+def _append_invalid_domain_issues(
+    issues: List[ValidationIssue], path: str, values: List[str]
+) -> None:
+    for item_index, value in enumerate(values):
+        if not str(value).strip():
+            continue
+        if _normalize_domain(value):
+            continue
+        issues.append(
+            ValidationIssue(
+                path=f"{path}.domains[{item_index}]",
+                message="domains entries must include a hostname or IP address.",
+            )
+        )
+
+
 def _metadata_list(value: object) -> List[str]:
     if value is None:
         return []
@@ -82,6 +98,8 @@ def _normalize_domain(value: object) -> str:
     parsed = urlparse(text if "://" in text else f"//{text}")
     if parsed.hostname:
         return parsed.hostname.rstrip(".").lower()
+    if "://" in text or text.startswith("//"):
+        return ""
 
     return text.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].split(":", 1)[0]
 
@@ -174,6 +192,7 @@ def validate_policy(policy: Policy) -> List[ValidationIssue]:
         _append_blank_matcher_issues(issues, path, "resource_prefixes", rule.resource_prefixes)
         _append_blank_matcher_issues(issues, path, "command_patterns", rule.command_patterns)
         _append_blank_matcher_issues(issues, path, "domains", rule.domains)
+        _append_invalid_domain_issues(issues, path, rule.domains)
         _append_blank_matcher_issues(issues, path, "env_var_patterns", rule.env_var_patterns)
         if rule.risk_threshold is not None:
             try:
