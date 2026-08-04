@@ -55,7 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format.",
     )
-    evaluate_parser.add_argument("--output", help="Write rendered output to a file.")
+    evaluate_parser.add_argument("--output", help="Write rendered output to a file. Use - for stdout.")
     evaluate_parser.add_argument(
         "--fail-on",
         choices=("deny", "review"),
@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Validation output format.",
     )
-    validate_parser.add_argument("--output", help="Write rendered output to a file.")
+    validate_parser.add_argument("--output", help="Write rendered output to a file. Use - for stdout.")
 
     return parser
 
@@ -101,7 +101,7 @@ def _validation_format_for_evaluate(output_format: str) -> str:
 
 
 def _write_output(output: Optional[str], content: str) -> None:
-    if output:
+    if output and output != "-":
         output_path = Path(output)
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)

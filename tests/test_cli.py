@@ -122,6 +122,74 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertIn("Unable to write output file", stderr.getvalue())
 
+    def test_evaluate_output_dash_writes_to_stdout(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stdout = sys.stdout
+        stdout = StringIO()
+        sys.argv = [
+            "apg",
+            "evaluate",
+            "--policy",
+            "examples/policy.json",
+            "--trace",
+            "examples/trace.json",
+            "--output",
+            "-",
+        ]
+        sys.stdout = stdout
+        try:
+            code = main()
+        finally:
+            sys.argv = previous_argv
+            sys.stdout = previous_stdout
+
+        self.assertEqual(code, 0)
+        self.assertIn("Policy: baseline-agent-runtime-policy", stdout.getvalue())
+
+    def test_validate_output_dash_writes_to_stdout(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "maybe",
+                        "rules": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "validate",
+                "--policy",
+                str(bad_policy),
+                "--format",
+                "json",
+                "--output",
+                "-",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "default_action")
+
     def test_sarif_output_write(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "report.sarif"
