@@ -1,6 +1,15 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
-from agent_policy_gate.engine import _event_payload_items, evaluate_trace, validate_policy
+from agent_policy_gate.engine import (
+    InputLoadError,
+    _event_payload_items,
+    evaluate_trace,
+    load_events,
+    validate_policy,
+)
 from agent_policy_gate.models import Event, Policy
 
 
@@ -759,6 +768,26 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["action"], "execute")
+
+    def test_load_events_rejects_scalar_top_level_trace_payload(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(json.dumps("not-an-event-list"), encoding="utf-8")
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_events(str(trace_path))
+
+        self.assertIn("Trace file must contain an event object", ctx.exception.message)
+
+    def test_load_events_rejects_scalar_wrapped_events_payload(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(json.dumps({"events": "not-an-event-list"}), encoding="utf-8")
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_events(str(trace_path))
+
+        self.assertIn("Trace file 'events' must contain an event object", ctx.exception.message)
 
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(

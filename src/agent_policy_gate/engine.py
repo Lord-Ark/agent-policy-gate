@@ -111,16 +111,27 @@ def load_policy(path: str) -> Policy:
 def _event_payload_items(payload: Any) -> List[object]:
     if isinstance(payload, dict):
         if "events" in payload:
-            return _event_payload_items(payload.get("events"))
+            wrapped_events = payload.get("events")
+            if isinstance(wrapped_events, (dict, list, tuple)):
+                return _event_payload_items(wrapped_events)
+            raise ValueError(
+                "Trace file 'events' must contain an event object or an array of events."
+            )
         return [payload]
     if isinstance(payload, (list, tuple)):
         return list(payload)
-    return []
+    raise ValueError(
+        "Trace file must contain an event object, an array of events, or an object with an 'events' field."
+    )
 
 
 def load_events(path: str) -> List[Event]:
     payload = _load_json_file(path, kind="trace")
-    return [Event.from_dict(item) for item in _event_payload_items(payload)]
+    try:
+        items = _event_payload_items(payload)
+    except ValueError as exc:
+        raise InputLoadError("trace", path, str(exc)) from exc
+    return [Event.from_dict(item) for item in items]
 
 
 def _load_json_file(path: str, *, kind: str) -> Any:

@@ -937,6 +937,38 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(payload["issues"][0]["path"], "trace")
             self.assertIn("Invalid JSON in trace file", payload["issues"][0]["message"])
 
+    def test_evaluate_invalid_trace_shape_uses_validation_output_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(json.dumps("not-an-event-list"), encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                str(trace_path),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "trace")
+            self.assertIn("Trace file must contain an event object", payload["issues"][0]["message"])
+
     def test_evaluate_trace_matches_domain_rule_when_metadata_domain_is_url(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             policy_path = Path(tmp_dir) / "policy.json"
