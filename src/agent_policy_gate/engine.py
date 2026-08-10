@@ -131,6 +131,10 @@ def load_events(path: str) -> List[Event]:
         items = _event_payload_items(payload)
     except ValueError as exc:
         raise InputLoadError("trace", path, str(exc)) from exc
+    for index, item in enumerate(items):
+        if isinstance(item, dict):
+            continue
+        raise InputLoadError("trace", path, f"Trace event at index {index} must be an object.")
     return [Event.from_dict(item) for item in items]
 
 

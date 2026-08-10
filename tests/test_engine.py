@@ -789,6 +789,17 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertIn("Trace file 'events' must contain an event object", ctx.exception.message)
 
+    def test_load_events_rejects_scalar_items_inside_event_lists(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(json.dumps([{"tool_name": "shell"}, "not-an-event"]), encoding="utf-8")
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_events(str(trace_path))
+
+        self.assertEqual(ctx.exception.kind, "trace")
+        self.assertIn("Trace event at index 1 must be an object.", ctx.exception.message)
+
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(
             {

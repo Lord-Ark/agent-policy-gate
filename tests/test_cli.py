@@ -651,6 +651,52 @@ class CLITestCase(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn("Summary: 1 events", stdout.getvalue())
 
+    def test_evaluate_trace_with_scalar_event_uses_validation_output(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "timestamp": "2026-01-01T00:00:00Z",
+                            "actor": "agent",
+                            "tool_name": "shell",
+                            "action": "execute",
+                            "resource": "/workspace",
+                        },
+                        "not-an-event",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "evaluate",
+                "--policy",
+                "examples/policy.json",
+                "--trace",
+                str(trace_path),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "trace")
+            self.assertIn("Trace event at index 1 must be an object.", payload["issues"][0]["message"])
+
     def test_evaluate_policy_with_string_risk_threshold_does_not_crash(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             policy_path = Path(tmp_dir) / "policy.json"
