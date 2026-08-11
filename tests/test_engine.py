@@ -716,6 +716,40 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-high-risk")
 
+    def test_invalid_string_risk_threshold_does_not_crash_direct_evaluation(self):
+        policy = Policy.from_dict(
+            {
+                "name": "bad-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "bad-threshold",
+                        "description": "broken threshold",
+                        "effect": "review",
+                        "risk_threshold": "not-a-number",
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "shell",
+                    "action": "execute",
+                    "resource": "/workspace",
+                }
+            )
+        ]
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.allowed, 1)
+        self.assertEqual(result.findings[0].decision, "allow")
+        self.assertIsNone(result.findings[0].rule_id)
+
     def test_event_with_non_mapping_metadata_does_not_crash(self):
         events = [
             Event.from_dict(

@@ -340,8 +340,13 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
         fnmatch.filter(env_vars, pattern) for pattern in rule.env_var_patterns
     ):
         return False
-    if rule.risk_threshold is not None and risk_score < rule.risk_threshold:
-        return False
+    if rule.risk_threshold is not None:
+        try:
+            risk_threshold = int(rule.risk_threshold)
+        except (TypeError, ValueError):
+            return False
+        if risk_score < risk_threshold:
+            return False
     return True
 
 
