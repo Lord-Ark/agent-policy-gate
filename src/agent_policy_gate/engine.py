@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import ipaddress
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable, List
 from urllib.parse import urlparse
@@ -32,6 +33,7 @@ RISK_HINTS = {
 VALID_DECISIONS = {"allow", "review", "deny"}
 VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
 DECISION_PRIORITY = {"allow": 0, "review": 1, "deny": 2}
+HOSTNAME_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 
 class InputLoadError(ValueError):
@@ -84,6 +86,12 @@ def _metadata_list(value: object) -> List[str]:
     return [str(value)]
 
 
+def _is_valid_hostname(hostname: str) -> bool:
+    if not hostname or len(hostname) > 253:
+        return False
+    return all(HOSTNAME_LABEL_RE.fullmatch(label) for label in hostname.split("."))
+
+
 def _normalize_domain(value: object) -> str:
     text = str(value).strip().lower().rstrip(".")
     if not text:
@@ -97,11 +105,13 @@ def _normalize_domain(value: object) -> str:
 
     parsed = urlparse(text if "://" in text else f"//{text}")
     if parsed.hostname:
-        return parsed.hostname.rstrip(".").lower()
+        hostname = parsed.hostname.rstrip(".").lower()
+        return hostname if _is_valid_hostname(hostname) else ""
     if "://" in text or text.startswith("//"):
         return ""
 
-    return text.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].split(":", 1)[0]
+    candidate = text.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].split(":", 1)[0]
+    return candidate if _is_valid_hostname(candidate) else ""
 
 
 def load_policy(path: str) -> Policy:
