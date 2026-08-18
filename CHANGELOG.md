@@ -10,6 +10,10 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 - CLI `--version` flag for quick package version checks in local and CI environments.
 
+### Fixed
+
+- Normalize bracketed IPv6 network targets in rule domains and trace resources so URL-based IPv6 egress is validated and scored correctly.
+
 ## [0.2.0] - 2026-06-08
 
 ### Added

@@ -420,6 +420,43 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-ipv6-egress")
 
+    def test_matches_domains_for_bracketed_ipv6_urls(self):
+        policy = Policy.from_dict(
+            {
+                "name": "ipv6-url-policy",
+                "version": "1.0.0",
+                "default_action": "allow",
+                "rules": [
+                    {
+                        "id": "review-ipv6-egress",
+                        "description": "review ipv6 url egress",
+                        "effect": "review",
+                        "actions": ["network"],
+                        "domains": ["http://[2001:4860:4860::8888]:443/path"],
+                    }
+                ],
+            }
+        )
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "http://[2001:4860:4860::8888]:443/path",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        self.assertFalse(validate_policy(policy))
+
+        result = evaluate_trace(policy, events)
+
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.findings[0].rule_id, "review-ipv6-egress")
+
     def test_network_url_without_metadata_domain_still_contributes_egress_risk(self):
         events = [
             Event.from_dict(
@@ -429,6 +466,24 @@ class EngineTestCase(unittest.TestCase):
                     "tool_name": "net",
                     "action": "network",
                     "resource": "https://example.com/api",
+                    "metadata": {},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 75)
+
+    def test_bracketed_public_ipv6_url_without_metadata_domain_still_contributes_egress_risk(self):
+        events = [
+            Event.from_dict(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor": "agent",
+                    "tool_name": "net",
+                    "action": "network",
+                    "resource": "http://[2001:4860:4860::8888]:443/dns-query",
                     "metadata": {},
                 }
             )

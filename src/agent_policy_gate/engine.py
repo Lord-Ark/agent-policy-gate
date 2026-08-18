@@ -106,7 +106,10 @@ def _normalize_domain(value: object) -> str:
     parsed = urlparse(text if "://" in text else f"//{text}")
     if parsed.hostname:
         hostname = parsed.hostname.rstrip(".").lower()
-        return hostname if _is_valid_hostname(hostname) else ""
+        try:
+            return str(ipaddress.ip_address(hostname))
+        except ValueError:
+            return hostname if _is_valid_hostname(hostname) else ""
     if "://" in text or text.startswith("//"):
         return ""
 
