@@ -16,20 +16,20 @@ jobs:
       - name: Install package
         run: pip install -e .
       - name: Validate sample policy
-        run: PYTHONPATH=src PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli validate --policy examples/policy.json
+        run: PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli validate --policy examples/policy.json
       - name: Compile sources
         run: PYTHONPYCACHEPREFIX=.pycache python -m compileall src tests
       - name: Syntax checks
         run: PYTHONPYCACHEPREFIX=.pycache python -m py_compile src/agent_policy_gate/*.py tests/*.py
       - name: Run unit tests
-        run: PYTHONPATH=src PYTHONPYCACHEPREFIX=.pycache python -m unittest discover -s tests -v
+        run: PYTHONPYCACHEPREFIX=.pycache python -m unittest discover -s tests -t . -v
       - name: Smoke test JSON output
-        run: PYTHONPATH=src PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format json > report.json
+        run: PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format json > report.json
       - name: Smoke test SARIF output
-        run: PYTHONPATH=src PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format sarif --output report.sarif
+        run: PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --format sarif --output report.sarif
       - name: Smoke test CI enforcement
         run: |
           set +e
-          PYTHONPATH=src PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --fail-on deny
+          PYTHONPYCACHEPREFIX=.pycache python -m agent_policy_gate.cli evaluate --policy examples/policy.json --trace examples/trace.json --fail-on deny
           status=$?
           test "$status" -eq 3

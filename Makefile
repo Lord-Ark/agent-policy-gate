@@ -14,7 +14,7 @@ typecheck:
 	PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m py_compile src/agent_policy_gate/*.py
 
 test:
-	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m unittest discover -s tests -v
+	PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m unittest discover -s tests -t . -v
 
 security:
 	PYTHONPATH=$(PYTHONPATH) PYTHONPYCACHEPREFIX=$(PYCACHE) $(PYTHON) -m agent_policy_gate.cli validate --policy examples/policy.json
