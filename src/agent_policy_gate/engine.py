@@ -117,8 +117,36 @@ def _normalize_domain(value: object) -> str:
     return candidate if _is_valid_hostname(candidate) else ""
 
 
+def _policy_payload_dict(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("Policy file must contain a JSON object.")
+    return payload
+
+
+def _policy_rule_items(payload: dict[str, Any]) -> List[dict[str, Any]]:
+    if "rules" not in payload:
+        return []
+
+    rules = payload.get("rules")
+    if not isinstance(rules, (list, tuple)):
+        raise ValueError("Policy file 'rules' must contain an array of rule objects.")
+
+    normalized_rules: List[dict[str, Any]] = []
+    for index, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            raise ValueError(f"Policy rule at index {index} must be an object.")
+        normalized_rules.append(rule)
+    return normalized_rules
+
+
 def load_policy(path: str) -> Policy:
-    return Policy.from_dict(_load_json_file(path, kind="policy"))
+    payload = _load_json_file(path, kind="policy")
+    try:
+        policy_payload = _policy_payload_dict(payload)
+        _policy_rule_items(policy_payload)
+    except ValueError as exc:
+        raise InputLoadError("policy", path, str(exc)) from exc
+    return Policy.from_dict(policy_payload)
 
 
 def _event_payload_items(payload: Any) -> List[object]:

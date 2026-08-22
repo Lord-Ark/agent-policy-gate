@@ -8,6 +8,7 @@ from agent_policy_gate.engine import (
     _event_payload_items,
     evaluate_trace,
     load_events,
+    load_policy,
     validate_policy,
 )
 from agent_policy_gate.models import Event, Policy
@@ -921,6 +922,59 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(ctx.exception.kind, "trace")
         self.assertIn("Trace event at index 1 must be an object.", ctx.exception.message)
+
+    def test_load_policy_rejects_scalar_top_level_payload(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            policy_path.write_text(json.dumps(["not-a-policy-object"]), encoding="utf-8")
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_policy(str(policy_path))
+
+        self.assertEqual(ctx.exception.kind, "policy")
+        self.assertIn("Policy file must contain a JSON object.", ctx.exception.message)
+
+    def test_load_policy_rejects_non_array_rules_field(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": {"id": "rule-1"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_policy(str(policy_path))
+
+        self.assertEqual(ctx.exception.kind, "policy")
+        self.assertIn("Policy file 'rules' must contain an array of rule objects.", ctx.exception.message)
+
+    def test_load_policy_rejects_non_object_rule_entries(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": [{"id": "rule-1", "description": "ok", "effect": "allow"}, "bad-rule"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(InputLoadError) as ctx:
+                load_policy(str(policy_path))
+
+        self.assertEqual(ctx.exception.kind, "policy")
+        self.assertIn("Policy rule at index 1 must be an object.", ctx.exception.message)
 
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(

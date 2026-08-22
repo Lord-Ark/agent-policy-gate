@@ -457,7 +457,7 @@ class CLITestCase(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["issues"][0]["path"], "rules[0].id")
 
-    def test_evaluate_single_rule_object_uses_validation_output_instead_of_crashing(self):
+    def test_evaluate_single_rule_object_reports_policy_shape_error(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             bad_policy = Path(tmp_dir) / "bad-policy.json"
             bad_policy.write_text(
@@ -498,7 +498,8 @@ class CLITestCase(unittest.TestCase):
 
             self.assertEqual(code, 1)
             payload = json.loads(stdout.getvalue())
-            self.assertEqual(payload["issues"][0]["path"], "rules[0].description")
+            self.assertEqual(payload["issues"][0]["path"], "policy")
+            self.assertIn("rules", payload["issues"][0]["message"])
 
     def test_validate_command_reports_invalid_domain_entries(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
