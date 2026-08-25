@@ -892,6 +892,11 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["action"], "execute")
 
+    def test_event_payload_items_treats_wrapped_null_events_as_empty(self):
+        items = _event_payload_items({"events": None})
+
+        self.assertEqual(items, [])
+
     def test_load_events_rejects_scalar_top_level_trace_payload(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             trace_path = Path(tmp_dir) / "trace.json"
@@ -901,6 +906,15 @@ class EngineTestCase(unittest.TestCase):
                 load_events(str(trace_path))
 
         self.assertIn("Trace file must contain an event object", ctx.exception.message)
+
+    def test_load_events_supports_wrapped_null_events_payload(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(json.dumps({"events": None}), encoding="utf-8")
+
+            events = load_events(str(trace_path))
+
+        self.assertEqual(events, [])
 
     def test_load_events_rejects_scalar_wrapped_events_payload(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

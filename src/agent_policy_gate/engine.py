@@ -153,6 +153,8 @@ def _event_payload_items(payload: Any) -> List[object]:
     if isinstance(payload, dict):
         if "events" in payload:
             wrapped_events = payload.get("events")
+            if wrapped_events is None:
+                return []
             if isinstance(wrapped_events, (dict, list, tuple)):
                 return _event_payload_items(wrapped_events)
             raise ValueError(
