@@ -343,6 +343,38 @@ class CLITestCase(unittest.TestCase):
                 ["rules[0].id", "rules[0].description", "rules[0].effect"],
             )
 
+    def test_validate_command_reports_missing_top_level_fields(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_policy = Path(tmp_dir) / "bad-policy.json"
+            bad_policy.write_text(json.dumps({"rules": []}), encoding="utf-8")
+            import sys
+            from io import StringIO
+
+            previous_argv = sys.argv
+            previous_stdout = sys.stdout
+            stdout = StringIO()
+            sys.argv = [
+                "apg",
+                "validate",
+                "--policy",
+                str(bad_policy),
+                "--format",
+                "json",
+            ]
+            sys.stdout = stdout
+            try:
+                code = main()
+            finally:
+                sys.argv = previous_argv
+                sys.stdout = previous_stdout
+
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(
+                [issue["path"] for issue in payload["issues"]],
+                ["name", "version", "default_action"],
+            )
+
     def test_evaluate_invalid_policy_uses_json_validation_output(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             bad_policy = Path(tmp_dir) / "bad-policy.json"

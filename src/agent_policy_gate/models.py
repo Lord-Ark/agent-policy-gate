@@ -116,9 +116,9 @@ class Policy:
     def from_dict(cls, payload: Dict[str, Any]) -> "Policy":
         payload = _as_dict(payload)
         return cls(
-            name=_as_string(payload.get("name", "unnamed-policy")),
-            version=_as_string(payload.get("version", "0.0.0")),
-            default_action=_as_string(payload.get("default_action", "allow"), lower=True),
+            name=_as_string(payload.get("name", "")),
+            version=_as_string(payload.get("version", "")),
+            default_action=_as_string(payload.get("default_action", ""), lower=True),
             rules=[Rule.from_dict(rule) for rule in _as_list(payload.get("rules", []))],
         )
 

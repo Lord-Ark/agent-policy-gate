@@ -1053,6 +1053,16 @@ class EngineTestCase(unittest.TestCase):
         self.assertTrue(any(issue.path == "rules[0].description" for issue in issues))
         self.assertTrue(any(issue.path == "rules[0].effect" for issue in issues))
 
+    def test_validation_reports_missing_top_level_fields_instead_of_accepting_defaults(self):
+        policy = Policy.from_dict({"rules": []})
+
+        issues = validate_policy(policy)
+
+        self.assertEqual(
+            [issue.path for issue in issues],
+            ["name", "version", "default_action"],
+        )
+
     def test_validation_reports_single_rule_object_instead_of_crashing(self):
         policy = Policy.from_dict(
             {
