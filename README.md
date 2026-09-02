@@ -91,6 +91,8 @@ apg evaluate --policy path/to/policy.json --trace path/to/trace.json --format sa
 apg evaluate --policy path/to/policy.json --trace path/to/trace.json --fail-on review
 apg evaluate --policy path/to/policy.json --trace path/to/trace.json --risk-threshold 90
 apg validate --policy path/to/policy.json --format json
+cat path/to/trace.json | apg evaluate --policy examples/policy.json --trace -
+cat path/to/policy.json | apg validate --policy - --format json
 ```
 
 CI-oriented controls:
@@ -110,6 +112,8 @@ Policy schema highlights:
 - `risk_threshold`: only trigger a rule when the derived score crosses the threshold.
 
 Trace inputs may be a single event object, an array of events, or an object that wraps either shape under an `events` key.
+
+Use `-` for `--policy` or `--trace` to read JSON from stdin. During `evaluate`, only one of those flags may use stdin in the same invocation.
 
 ## GitHub security integration
 

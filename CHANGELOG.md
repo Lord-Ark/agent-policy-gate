@@ -9,6 +9,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ### Added
 
 - CLI `--version` flag for quick package version checks in local and CI environments.
+- Support `--policy -` and `--trace -` stdin inputs for pipeline-friendly validation and evaluation workflows.
 
 ### Fixed
 

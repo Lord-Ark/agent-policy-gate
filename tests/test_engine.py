@@ -916,6 +916,55 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(events, [])
 
+    def test_load_events_accepts_stdin_input(self):
+        import sys
+        from io import StringIO
+
+        previous_stdin = sys.stdin
+        sys.stdin = StringIO(
+            json.dumps(
+                [
+                    {
+                        "timestamp": "2026-01-01T00:00:00Z",
+                        "actor": "agent",
+                        "tool_name": "shell",
+                        "action": "execute",
+                        "resource": "/workspace",
+                    }
+                ]
+            )
+        )
+        try:
+            events = load_events("-")
+        finally:
+            sys.stdin = previous_stdin
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].tool_name, "shell")
+
+    def test_load_policy_accepts_stdin_input(self):
+        import sys
+        from io import StringIO
+
+        previous_stdin = sys.stdin
+        sys.stdin = StringIO(
+            json.dumps(
+                {
+                    "name": "stdin-policy",
+                    "version": "1.0.0",
+                    "default_action": "allow",
+                    "rules": [],
+                }
+            )
+        )
+        try:
+            policy = load_policy("-")
+        finally:
+            sys.stdin = previous_stdin
+
+        self.assertEqual(policy.name, "stdin-policy")
+        self.assertEqual(policy.default_action, "allow")
+
     def test_load_events_rejects_scalar_wrapped_events_payload(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             trace_path = Path(tmp_dir) / "trace.json"

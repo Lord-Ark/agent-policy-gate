@@ -6,6 +6,7 @@ import fnmatch
 import ipaddress
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any, Iterable, List
 from urllib.parse import urlparse
@@ -182,10 +183,15 @@ def load_events(path: str) -> List[Event]:
 
 
 def _load_json_file(path: str, *, kind: str) -> Any:
+    source_label = f"{kind} stdin" if path == "-" else f"{kind} file"
     try:
-        raw = Path(path).read_text(encoding="utf-8")
+        raw = sys.stdin.read() if path == "-" else Path(path).read_text(encoding="utf-8")
     except OSError as exc:
-        raise InputLoadError(kind, path, f"Unable to read {kind} file: {exc.strerror or exc}.") from exc
+        raise InputLoadError(
+            kind,
+            path,
+            f"Unable to read {source_label}: {exc.strerror or exc}.",
+        ) from exc
 
     try:
         return json.loads(raw)
@@ -193,7 +199,7 @@ def _load_json_file(path: str, *, kind: str) -> Any:
         raise InputLoadError(
             kind,
             path,
-            f"Invalid JSON in {kind} file at line {exc.lineno}, column {exc.colno}: {exc.msg}.",
+            f"Invalid JSON in {source_label} at line {exc.lineno}, column {exc.colno}: {exc.msg}.",
         ) from exc
 
 

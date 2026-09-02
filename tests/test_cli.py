@@ -190,6 +190,65 @@ class CLITestCase(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["issues"][0]["path"], "default_action")
 
+    def test_validate_accepts_policy_from_stdin(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stdin = sys.stdin
+        previous_stdout = sys.stdout
+        stdout = StringIO()
+        sys.argv = ["apg", "validate", "--policy", "-", "--format", "json"]
+        sys.stdin = StringIO(
+            json.dumps(
+                {
+                    "name": "stdin-policy",
+                    "version": "1.0.0",
+                    "default_action": "allow",
+                    "rules": [],
+                }
+            )
+        )
+        sys.stdout = stdout
+        try:
+            code = main()
+        finally:
+            sys.argv = previous_argv
+            sys.stdin = previous_stdin
+            sys.stdout = previous_stdout
+
+        self.assertEqual(code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["issues"], [])
+
+    def test_evaluate_accepts_trace_from_stdin(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stdin = sys.stdin
+        previous_stdout = sys.stdout
+        stdout = StringIO()
+        sys.argv = [
+            "apg",
+            "evaluate",
+            "--policy",
+            "examples/policy.json",
+            "--trace",
+            "-",
+        ]
+        sys.stdin = StringIO(Path("examples/trace.json").read_text(encoding="utf-8"))
+        sys.stdout = stdout
+        try:
+            code = main()
+        finally:
+            sys.argv = previous_argv
+            sys.stdin = previous_stdin
+            sys.stdout = previous_stdout
+
+        self.assertEqual(code, 0)
+        self.assertIn("Summary: 5 events", stdout.getvalue())
+
     def test_sarif_output_write(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "report.sarif"
@@ -622,6 +681,32 @@ class CLITestCase(unittest.TestCase):
             sys.argv = previous_argv
 
         self.assertEqual(context.exception.code, 2)
+
+    def test_rejects_reading_policy_and_trace_from_stdin_together(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stderr = sys.stderr
+        stderr = StringIO()
+        sys.argv = [
+            "apg",
+            "evaluate",
+            "--policy",
+            "-",
+            "--trace",
+            "-",
+        ]
+        sys.stderr = stderr
+        try:
+            with self.assertRaises(SystemExit) as context:
+                main()
+        finally:
+            sys.argv = previous_argv
+            sys.stderr = previous_stderr
+
+        self.assertEqual(context.exception.code, 2)
+        self.assertIn("Only one of --policy or --trace may read from stdin", stderr.getvalue())
 
     def test_version_flag_prints_package_version(self):
         import sys

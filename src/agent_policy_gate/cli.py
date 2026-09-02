@@ -128,9 +128,15 @@ def _should_fail(result, fail_on: Optional[str], risk_threshold: Optional[int]) 
     return False
 
 
+def _validate_stdin_sources(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.command == "evaluate" and args.policy == "-" and args.trace == "-":
+        parser.error("Only one of --policy or --trace may read from stdin during evaluation.")
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    _validate_stdin_sources(parser, args)
 
     try:
         if args.command == "evaluate":
