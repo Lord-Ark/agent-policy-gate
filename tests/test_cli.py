@@ -221,6 +221,30 @@ class CLITestCase(unittest.TestCase):
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["issues"], [])
 
+    def test_validate_accepts_utf8_bom_prefixed_policy_from_stdin(self):
+        import sys
+        from io import StringIO
+
+        previous_argv = sys.argv
+        previous_stdin = sys.stdin
+        previous_stdout = sys.stdout
+        stdout = StringIO()
+        sys.argv = ["apg", "validate", "--policy", "-", "--format", "json"]
+        sys.stdin = StringIO(
+            '\ufeff{"name":"stdin-policy","version":"1.0.0","default_action":"allow","rules":[]}'
+        )
+        sys.stdout = stdout
+        try:
+            code = main()
+        finally:
+            sys.argv = previous_argv
+            sys.stdin = previous_stdin
+            sys.stdout = previous_stdout
+
+        self.assertEqual(code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["issues"], [])
+
     def test_evaluate_accepts_trace_from_stdin(self):
         import sys
         from io import StringIO

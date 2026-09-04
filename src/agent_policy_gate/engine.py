@@ -194,13 +194,19 @@ def _load_json_file(path: str, *, kind: str) -> Any:
         ) from exc
 
     try:
-        return json.loads(raw)
+        return json.loads(_strip_utf8_bom(raw))
     except json.JSONDecodeError as exc:
         raise InputLoadError(
             kind,
             path,
             f"Invalid JSON in {source_label} at line {exc.lineno}, column {exc.colno}: {exc.msg}.",
         ) from exc
+
+
+def _strip_utf8_bom(raw: str) -> str:
+    if raw.startswith("\ufeff"):
+        return raw[1:]
+    return raw
 
 
 def validate_policy(policy: Policy) -> List[ValidationIssue]:

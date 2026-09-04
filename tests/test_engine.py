@@ -651,6 +651,31 @@ class EngineTestCase(unittest.TestCase):
             ],
         )
 
+    def test_load_policy_accepts_utf8_bom_prefixed_json(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            policy_path = Path(tmp_dir) / "policy.json"
+            policy_path.write_text(
+                '\ufeff{"name":"bom-policy","version":"1.0.0","default_action":"allow","rules":[]}',
+                encoding="utf-8",
+            )
+
+            policy = load_policy(str(policy_path))
+
+            self.assertEqual(policy.name, "bom-policy")
+
+    def test_load_events_accepts_utf8_bom_prefixed_json(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            trace_path = Path(tmp_dir) / "trace.json"
+            trace_path.write_text(
+                '\ufeff[{"timestamp":"2026-01-01T00:00:00Z","actor":"agent","tool_name":"fs","action":"read","resource":"docs/readme.md","metadata":{}}]',
+                encoding="utf-8",
+            )
+
+            events = load_events(str(trace_path))
+
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0].tool_name, "fs")
+
     def test_raw_private_ipv6_does_not_receive_external_egress_risk(self):
         events = [
             Event.from_dict(
