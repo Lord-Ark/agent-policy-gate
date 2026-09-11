@@ -186,6 +186,12 @@ def _load_json_file(path: str, *, kind: str) -> Any:
     source_label = f"{kind} stdin" if path == "-" else f"{kind} file"
     try:
         raw = sys.stdin.read() if path == "-" else Path(path).read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise InputLoadError(
+            kind,
+            path,
+            f"Invalid text encoding in {source_label}; expected UTF-8.",
+        ) from exc
     except OSError as exc:
         raise InputLoadError(
             kind,

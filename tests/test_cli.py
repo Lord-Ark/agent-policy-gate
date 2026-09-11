@@ -2,11 +2,35 @@ import tempfile
 import unittest
 from pathlib import Path
 import json
+from io import StringIO
+from unittest.mock import patch
 
 from agent_policy_gate.cli import main
 
 
 class CLITestCase(unittest.TestCase):
+    def test_invalid_utf8_inputs_use_validation_output(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bad_input = Path(tmp_dir) / "invalid.json"
+            bad_input.write_bytes(b'{"name": "\xff"}')
+            cases = [
+                ("policy", ["validate", "--policy", str(bad_input)]),
+                ("policy", ["evaluate", "--policy", str(bad_input),
+                            "--trace", "examples/trace.json"]),
+                ("trace", ["evaluate", "--policy", "examples/policy.json",
+                           "--trace", str(bad_input)]),
+            ]
+            for kind, arguments in cases:
+                with self.subTest(arguments=arguments):
+                    stdout = StringIO()
+                    with patch("sys.argv", ["apg", *arguments, "--format", "json"]), \
+                            patch("sys.stdout", stdout):
+                        code = main()
+                    self.assertEqual(code, 1)
+                    issue = json.loads(stdout.getvalue())["issues"][0]
+                    self.assertEqual(issue["path"], kind)
+                    self.assertEqual(issue["message"], f"Invalid text encoding in {kind} file; expected UTF-8.")
+
     def test_validate_command_reports_invalid_policy_json(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             bad_policy = Path(tmp_dir) / "bad-policy.json"
