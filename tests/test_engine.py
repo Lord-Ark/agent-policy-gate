@@ -584,6 +584,32 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 35)
 
+    def test_validate_policy_rejects_malformed_domain_urls(self):
+        for domain in ("https://[::1", "https://::1]/", "https://example.com\uff0fpath"):
+            with self.subTest(domain=domain):
+                self.policy.rules[0].domains = [domain]
+                issues = validate_policy(self.policy)
+                self.assertIn(
+                    ("rules[0].domains[0]", "domains entries must include a hostname or IP address."),
+                    [(issue.path, issue.message) for issue in issues],
+                )
+
+    def test_malformed_metadata_domain_falls_back_to_resource(self):
+        event = Event.from_dict({
+            "action": "network",
+            "resource": "https://example.com",
+            "metadata": {"domain": "https://[::1"},
+        })
+        result = evaluate_trace(self.policy, [event])
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.summary.highest_risk_score, 75)
+
+    def test_malformed_resource_domain_uses_default_policy(self):
+        event = Event.from_dict({"action": "network", "resource": "https://[::1"})
+        result = evaluate_trace(self.policy, [event])
+        self.assertEqual(result.summary.review, 1)
+        self.assertEqual(result.summary.total_events, 1)
+
     def test_validate_policy_rejects_domain_entries_without_host_or_ip(self):
         policy = Policy.from_dict(
             {

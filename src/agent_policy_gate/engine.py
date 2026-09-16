@@ -104,7 +104,10 @@ def _normalize_domain(value: object) -> str:
     except ValueError:
         pass
 
-    parsed = urlparse(text if "://" in text else f"//{text}")
+    try:
+        parsed = urlparse(text if "://" in text else f"//{text}")
+    except ValueError:
+        return ""
     if parsed.hostname:
         hostname = parsed.hostname.rstrip(".").lower()
         try:
