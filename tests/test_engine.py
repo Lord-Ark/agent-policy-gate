@@ -856,6 +856,27 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(result.summary.review, 1)
         self.assertEqual(result.findings[0].rule_id, "review-high-risk")
 
+    def test_rejects_non_integer_risk_thresholds(self):
+        for value in (2.5, True, False):
+            with self.subTest(value=value):
+                policy = Policy.from_dict(
+                    {
+                        "name": "bad-policy",
+                        "version": "1.0.0",
+                        "default_action": "allow",
+                        "rules": [
+                            {
+                                "id": "bad-threshold",
+                                "description": "invalid threshold",
+                                "effect": "review",
+                                "risk_threshold": value,
+                            }
+                        ],
+                    }
+                )
+                issues = validate_policy(policy)
+                self.assertTrue(any(issue.path == "rules[0].risk_threshold" for issue in issues))
+
     def test_invalid_string_risk_threshold_does_not_crash_direct_evaluation(self):
         policy = Policy.from_dict(
             {

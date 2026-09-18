@@ -275,6 +275,8 @@ def validate_policy(policy: Policy) -> List[ValidationIssue]:
         _append_blank_matcher_issues(issues, path, "env_var_patterns", rule.env_var_patterns)
         if rule.risk_threshold is not None:
             try:
+                if isinstance(rule.risk_threshold, (bool, float)):
+                    raise ValueError("risk threshold must be an integer")
                 risk_threshold = int(rule.risk_threshold)
             except (TypeError, ValueError):
                 issues.append(
@@ -406,6 +408,8 @@ def _matches(rule: Rule, event: Event, risk_score: int) -> bool:
         return False
     if rule.risk_threshold is not None:
         try:
+            if isinstance(rule.risk_threshold, (bool, float)):
+                return False
             risk_threshold = int(rule.risk_threshold)
         except (TypeError, ValueError):
             return False

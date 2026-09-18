@@ -30,6 +30,8 @@ def _as_list(value: Any) -> List[Any]:
 def _coerce_optional_int(value: Any) -> Any:
     if value is None:
         return None
+    if isinstance(value, (bool, float)):
+        return value
     try:
         return int(value)
     except (TypeError, ValueError):
