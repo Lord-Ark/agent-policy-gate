@@ -1184,6 +1184,37 @@ class EngineTestCase(unittest.TestCase):
             ["name", "version", "default_action"],
         )
 
+    def test_validation_rejects_null_required_text_fields(self):
+        policy = Policy.from_dict(
+            {
+                "name": None,
+                "version": None,
+                "default_action": None,
+                "rules": [
+                    {
+                        "id": None,
+                        "description": None,
+                        "effect": None,
+                        "actions": ["read"],
+                    }
+                ],
+            }
+        )
+
+        issues = validate_policy(policy)
+
+        self.assertEqual(
+            [issue.path for issue in issues],
+            [
+                "name",
+                "version",
+                "default_action",
+                "rules[0].id",
+                "rules[0].description",
+                "rules[0].effect",
+            ],
+        )
+
     def test_validation_reports_single_rule_object_instead_of_crashing(self):
         policy = Policy.from_dict(
             {

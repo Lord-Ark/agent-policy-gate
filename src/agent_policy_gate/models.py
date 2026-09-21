@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 
 def _as_string(value: Any, *, lower: bool = False) -> str:
+    if value is None:
+        return ""
     text = str(value).strip()
     return text.lower() if lower else text
 
