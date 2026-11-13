@@ -179,9 +179,15 @@ def load_events(path: str) -> List[Event]:
     except ValueError as exc:
         raise InputLoadError("trace", path, str(exc)) from exc
     for index, item in enumerate(items):
-        if isinstance(item, dict):
-            continue
-        raise InputLoadError("trace", path, f"Trace event at index {index} must be an object.")
+        if not isinstance(item, dict):
+            raise InputLoadError("trace", path, f"Trace event at index {index} must be an object.")
+        metadata = item.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise InputLoadError(
+                "trace",
+                path,
+                f"Trace event metadata at index {index} must be an object.",
+            )
     return [Event.from_dict(item) for item in items]
 
 

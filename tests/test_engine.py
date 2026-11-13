@@ -1090,6 +1090,34 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(ctx.exception.kind, "policy")
         self.assertIn("Policy file 'rules' must contain an array of rule objects.", ctx.exception.message)
 
+    def test_load_events_rejects_non_object_metadata(self):
+        for metadata in ("command=rm -rf /", ["SECRET_KEY"]):
+            with self.subTest(metadata=metadata), tempfile.TemporaryDirectory() as temp_dir:
+                trace_path = Path(temp_dir) / "trace.json"
+                trace_path.write_text(
+                    json.dumps(
+                        {
+                            "events": [
+                                {
+                                    "action": "execute",
+                                    "tool_name": "shell",
+                                    "metadata": metadata,
+                                }
+                            ]
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                with self.assertRaises(InputLoadError) as ctx:
+                    load_events(str(trace_path))
+
+                self.assertEqual(ctx.exception.kind, "trace")
+                self.assertIn(
+                    "Trace event metadata at index 0 must be an object.",
+                    ctx.exception.message,
+                )
+
     def test_load_policy_rejects_non_object_rule_entries(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             policy_path = Path(tmp_dir) / "policy.json"

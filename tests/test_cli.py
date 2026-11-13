@@ -775,7 +775,7 @@ class CLITestCase(unittest.TestCase):
         self.assertEqual(context.exception.code, 0)
         self.assertEqual(stdout.getvalue().strip(), "apg 0.2.0")
 
-    def test_evaluate_trace_with_non_mapping_metadata_does_not_crash(self):
+    def test_evaluate_trace_with_non_mapping_metadata_uses_validation_output(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             trace_path = Path(tmp_dir) / "trace.json"
             trace_path.write_text(
@@ -806,6 +806,8 @@ class CLITestCase(unittest.TestCase):
                 "examples/policy.json",
                 "--trace",
                 str(trace_path),
+                "--format",
+                "json",
             ]
             sys.stdout = stdout
             try:
@@ -814,8 +816,13 @@ class CLITestCase(unittest.TestCase):
                 sys.argv = previous_argv
                 sys.stdout = previous_stdout
 
-            self.assertEqual(code, 0)
-            self.assertIn("Summary: 1 events", stdout.getvalue())
+            self.assertEqual(code, 1)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["issues"][0]["path"], "trace")
+            self.assertIn(
+                "Trace event metadata at index 0 must be an object.",
+                payload["issues"][0]["message"],
+            )
 
     def test_evaluate_trace_with_scalar_event_uses_validation_output(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
