@@ -530,6 +530,40 @@ class EngineTestCase(unittest.TestCase):
 
         self.assertEqual(result.summary.highest_risk_score, 15)
 
+    def test_non_boolean_risk_flags_do_not_increase_risk_score(self):
+        events = [
+            Event.from_dict(
+                {
+                    "action": "read",
+                    "resource": "docs/readme.md",
+                    "metadata": {
+                        "requires_approval": "false",
+                        "writes_outside_workspace": 1,
+                        "accesses_secrets": ["false"],
+                    },
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 15)
+
+    def test_boolean_risk_flags_still_increase_risk_score(self):
+        events = [
+            Event.from_dict(
+                {
+                    "action": "read",
+                    "resource": "docs/readme.md",
+                    "metadata": {"accesses_secrets": True},
+                }
+            )
+        ]
+
+        result = evaluate_trace(self.policy, events)
+
+        self.assertEqual(result.summary.highest_risk_score, 95)
+
     def test_dotted_file_path_does_not_receive_external_egress_risk(self):
         events = [
             Event.from_dict(

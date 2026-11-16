@@ -329,11 +329,11 @@ def _derive_risk_score(event: Event) -> int:
     command = str(metadata.get("command", ""))
     if "rm -rf" in command or "sudo" in command:
         score = max(score, 95)
-    if metadata.get("requires_approval"):
+    if metadata.get("requires_approval") is True:
         score = max(score, 65)
-    if metadata.get("writes_outside_workspace"):
+    if metadata.get("writes_outside_workspace") is True:
         score = max(score, 90)
-    if metadata.get("accesses_secrets"):
+    if metadata.get("accesses_secrets") is True:
         score = max(score, 95)
     domain = _event_domain(event) if action == "network" else ""
     if domain and not _is_internal_domain(domain):
