@@ -1173,6 +1173,46 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(ctx.exception.kind, "policy")
         self.assertIn("Policy rule at index 1 must be an object.", ctx.exception.message)
 
+    def test_load_policy_rejects_non_array_matcher_fields(self):
+        matcher_fields = (
+            "actions",
+            "tools",
+            "resource_prefixes",
+            "command_patterns",
+            "domains",
+            "env_var_patterns",
+        )
+        for field_name in matcher_fields:
+            with self.subTest(field_name=field_name), tempfile.TemporaryDirectory() as tmp_dir:
+                policy_path = Path(tmp_dir) / "policy.json"
+                policy_path.write_text(
+                    json.dumps(
+                        {
+                            "name": "bad-policy",
+                            "version": "1.0.0",
+                            "default_action": "allow",
+                            "rules": [
+                                {
+                                    "id": "malformed-matcher",
+                                    "description": "contains a malformed matcher",
+                                    "effect": "deny",
+                                    field_name: {"unexpected": True},
+                                }
+                            ],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                with self.assertRaises(InputLoadError) as ctx:
+                    load_policy(str(policy_path))
+
+                self.assertEqual(ctx.exception.kind, "policy")
+                self.assertIn(
+                    f"Policy rule at index 0 field '{field_name}' must contain an array.",
+                    ctx.exception.message,
+                )
+
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(
             {

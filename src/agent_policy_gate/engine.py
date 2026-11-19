@@ -35,6 +35,14 @@ VALID_DECISIONS = {"allow", "review", "deny"}
 VALID_SEVERITIES = {"low", "medium", "high", "critical", "info"}
 DECISION_PRIORITY = {"allow": 0, "review": 1, "deny": 2}
 HOSTNAME_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+RULE_LIST_FIELDS = (
+    "actions",
+    "tools",
+    "resource_prefixes",
+    "command_patterns",
+    "domains",
+    "env_var_patterns",
+)
 
 
 class InputLoadError(ValueError):
@@ -139,6 +147,11 @@ def _policy_rule_items(payload: dict[str, Any]) -> List[dict[str, Any]]:
     for index, rule in enumerate(rules):
         if not isinstance(rule, dict):
             raise ValueError(f"Policy rule at index {index} must be an object.")
+        for field_name in RULE_LIST_FIELDS:
+            if field_name in rule and not isinstance(rule[field_name], (list, tuple)):
+                raise ValueError(
+                    f"Policy rule at index {index} field '{field_name}' must contain an array."
+                )
         normalized_rules.append(rule)
     return normalized_rules
 
