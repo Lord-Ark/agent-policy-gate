@@ -148,10 +148,18 @@ def _policy_rule_items(payload: dict[str, Any]) -> List[dict[str, Any]]:
         if not isinstance(rule, dict):
             raise ValueError(f"Policy rule at index {index} must be an object.")
         for field_name in RULE_LIST_FIELDS:
-            if field_name in rule and not isinstance(rule[field_name], (list, tuple)):
+            if field_name not in rule:
+                continue
+            if not isinstance(rule[field_name], (list, tuple)):
                 raise ValueError(
                     f"Policy rule at index {index} field '{field_name}' must contain an array."
                 )
+            for item_index, value in enumerate(rule[field_name]):
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"Policy rule at index {index} field '{field_name}' entry at index "
+                        f"{item_index} must be a string."
+                    )
         normalized_rules.append(rule)
     return normalized_rules
 

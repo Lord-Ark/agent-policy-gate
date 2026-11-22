@@ -1213,6 +1213,46 @@ class EngineTestCase(unittest.TestCase):
                     ctx.exception.message,
                 )
 
+    def test_load_policy_rejects_non_string_matcher_entries(self):
+        matcher_fields = (
+            "actions",
+            "tools",
+            "resource_prefixes",
+            "command_patterns",
+            "domains",
+            "env_var_patterns",
+        )
+        for field_name in matcher_fields:
+            with self.subTest(field_name=field_name), tempfile.TemporaryDirectory() as temp_dir:
+                policy_path = Path(temp_dir) / "policy.json"
+                policy_path.write_text(
+                    json.dumps(
+                        {
+                            "name": "bad-policy",
+                            "version": "1.0.0",
+                            "default_action": "allow",
+                            "rules": [
+                                {
+                                    "id": "malformed-matcher",
+                                    "description": "contains a malformed matcher",
+                                    "effect": "review",
+                                    field_name: ["valid", {"unexpected": "object"}],
+                                }
+                            ],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                with self.assertRaises(InputLoadError) as ctx:
+                    load_policy(str(policy_path))
+
+                self.assertEqual(ctx.exception.kind, "policy")
+                self.assertIn(
+                    f"field '{field_name}' entry at index 1 must be a string",
+                    ctx.exception.message,
+                )
+
     def test_validation_rejects_duplicate_rule_ids(self):
         policy = Policy.from_dict(
             {
