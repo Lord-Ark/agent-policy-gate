@@ -1124,6 +1124,43 @@ class EngineTestCase(unittest.TestCase):
         self.assertEqual(ctx.exception.kind, "policy")
         self.assertIn("Policy file 'rules' must contain an array of rule objects.", ctx.exception.message)
 
+    def test_load_policy_rejects_non_string_text_fields(self):
+        field_locations = (
+            ("name", None),
+            ("version", None),
+            ("default_action", None),
+            ("id", "rule"),
+            ("description", "rule"),
+            ("effect", "rule"),
+            ("severity", "rule"),
+        )
+        for field_name, location in field_locations:
+            with self.subTest(field_name=field_name), tempfile.TemporaryDirectory() as tmp_dir:
+                policy = {
+                    "name": "bad-policy",
+                    "version": "1.0.0",
+                    "default_action": "allow",
+                    "rules": [
+                        {
+                            "id": "rule-1",
+                            "description": "review writes",
+                            "effect": "review",
+                            "severity": "medium",
+                            "actions": ["write"],
+                        }
+                    ],
+                }
+                target = policy["rules"][0] if location == "rule" else policy
+                target[field_name] = {"unexpected": True}
+                policy_path = Path(tmp_dir) / "policy.json"
+                policy_path.write_text(json.dumps(policy), encoding="utf-8")
+
+                with self.assertRaises(InputLoadError) as ctx:
+                    load_policy(str(policy_path))
+
+                self.assertEqual(ctx.exception.kind, "policy")
+                self.assertIn(f"field '{field_name}' must be a string", ctx.exception.message)
+
     def test_load_events_rejects_non_object_metadata(self):
         for metadata in ("command=rm -rf /", ["SECRET_KEY"]):
             with self.subTest(metadata=metadata), tempfile.TemporaryDirectory() as temp_dir:

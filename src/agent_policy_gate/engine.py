@@ -132,6 +132,10 @@ def _normalize_domain(value: object) -> str:
 def _policy_payload_dict(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Policy file must contain a JSON object.")
+    for field_name in ("name", "version", "default_action"):
+        if field_name in payload and payload[field_name] is not None:
+            if not isinstance(payload[field_name], str):
+                raise ValueError(f"Policy field '{field_name}' must be a string.")
     return payload
 
 
@@ -147,6 +151,12 @@ def _policy_rule_items(payload: dict[str, Any]) -> List[dict[str, Any]]:
     for index, rule in enumerate(rules):
         if not isinstance(rule, dict):
             raise ValueError(f"Policy rule at index {index} must be an object.")
+        for field_name in ("id", "description", "effect", "severity"):
+            if field_name in rule and rule[field_name] is not None:
+                if not isinstance(rule[field_name], str):
+                    raise ValueError(
+                        f"Policy rule at index {index} field '{field_name}' must be a string."
+                    )
         for field_name in RULE_LIST_FIELDS:
             if field_name not in rule:
                 continue
